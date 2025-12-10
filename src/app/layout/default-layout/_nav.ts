@@ -11,6 +11,16 @@ export const navItems: INavData[] = [
     },
   },
 
+  {
+    name: 'Map Phase 2',
+    url: '/map-phase-v2',
+    iconComponent: { name: 'cil-layers' },
+    badge: {
+      color: 'success',
+      text: 'NEW',
+    },
+  },
+
   // {
   //   title: true,
   //   name: 'Theme'

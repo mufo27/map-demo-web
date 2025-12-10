@@ -67,6 +67,17 @@ export const routes: Routes = [
     },
   },
 
+  {
+    path: 'map-phase-v2',
+    loadComponent: () =>
+      import('./modules/map-phase-v2/map-phase-v2.component').then(
+        (m) => m.MapPhaseV2Component
+      ),
+    data: {
+      title: 'Map Phase 2',
+    },
+  },
+
   // {
   //   path: '404',
   //   loadComponent: () => import('./views/pages/page404/page404.component').then(m => m.Page404Component),

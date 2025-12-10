@@ -1,0 +1,144 @@
+<div class="map-wrapper">
+  <div id="cesiumContainer"></div>
+
+  <!-- Layer Control Panel -->
+  <div class="layer-control-panel">
+    <h3 class="panel-title">
+      <i class="icon-layers"></i>
+      Layer Control (Phase 2)
+    </h3>
+
+    <div class="layer-controls">
+      <!-- Google Maps Satellite -->
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.googleSatellite"
+            (change)="toggleGoogleSatellite()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-satellite"></i>
+            Google Satellite
+          </span>
+        </label>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Phase 2: DEM & Contour -->
+      <div class="section-title">📊 Elevation Data</div>
+
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.demLayer"
+            (change)="toggleDEMLayer()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-dem"></i>
+            DEM (ความสูง)
+          </span>
+        </label>
+      </div>
+
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.contourLayer"
+            (change)="toggleContourLayer()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-contour"></i>
+            Contour (ขอบเขตระดับ)
+          </span>
+        </label>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-title">🗺️ Boundaries</div>
+
+      <!-- Province Boundaries -->
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.provinceBoundaries"
+            (change)="toggleProvinceBoundaries()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-boundary"></i>
+            ขอบเขตจังหวัด
+          </span>
+        </label>
+      </div>
+
+      <!-- District Boundaries -->
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.districtBoundaries"
+            (change)="toggleDistrictBoundaries()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-boundary"></i>
+            ขอบเขตอำเภอ/ตำบล
+          </span>
+        </label>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-title">🚗 Infrastructure</div>
+
+      <!-- Roads -->
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.roads"
+            (change)="toggleRoads()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-road"></i>
+            ถนน
+          </span>
+        </label>
+      </div>
+
+      <!-- Waterways -->
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.waterways"
+            (change)="toggleWaterways()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-water"></i>
+            คลอง/ทางน้ำ
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 2: Info Panel (แสดงเมื่อคลิกแผนที่) -->
+  <div class="info-panel" style="display: none;">
+    <div class="info-content">
+      <h4>Feature Information</h4>
+      <div id="featureInfo"></div>
+    </div>
+  </div>
+</div>
