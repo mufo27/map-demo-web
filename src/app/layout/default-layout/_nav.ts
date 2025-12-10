@@ -2,8 +2,8 @@ import { INavData } from '@coreui/angular';
 
 export const navItems: INavData[] = [
   {
-    name: 'Map',
-    url: '/map',
+    name: 'Map Phase 1',
+    url: '/map-phase-v1',
     iconComponent: { name: 'cil-speedometer' },
     badge: {
       color: 'info',

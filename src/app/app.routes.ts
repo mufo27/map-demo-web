@@ -3,7 +3,7 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'map',
+    redirectTo: 'map-phase-v1',
     pathMatch: 'full',
   },
   // {
@@ -57,13 +57,13 @@ export const routes: Routes = [
   // },
 
   {
-    path: 'map',
+    path: 'map-phase-v1',
     loadComponent: () =>
       import('./modules/map-phase-v1/map-phase-v1.component').then(
         (m) => m.MapPhaseV1Component
       ),
     data: {
-      title: 'Map',
+      title: 'Map Phase 1',
     },
   },
 
@@ -95,5 +95,5 @@ export const routes: Routes = [
   //     title: 'Register Page'
   //   }
   // },
-  { path: '**', redirectTo: 'map' },
+  { path: '**', redirectTo: 'map-phase-v1' },
 ];

@@ -1,9 +1,12 @@
 import { Component, AfterViewInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import * as Cesium from 'cesium';
 
 @Component({
   selector: 'app-map-phase-v1',
   standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './map-phase-v1.component.html',
   styleUrl: './map-phase-v1.component.scss',
 })
@@ -11,6 +14,24 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   viewer!: Cesium.Viewer;
   private geoserverUrl = 'http://192.168.88.217:6080/geoserver';
   private workspace = 'test-thailand';
+
+  // Layer references for toggling
+  private layers = {
+    googleSatellite: null as Cesium.ImageryLayer | null,
+    provinceBoundaries: null as Cesium.ImageryLayer | null,
+    districtBoundaries: null as Cesium.ImageryLayer | null,
+    roads: null as Cesium.ImageryLayer | null,
+    waterways: null as Cesium.ImageryLayer | null,
+  };
+
+  // Layer visibility states (bound to checkboxes)
+  layerControls = {
+    googleSatellite: false,
+    provinceBoundaries: false,
+    districtBoundaries: false,
+    roads: false,
+    waterways: false,
+  };
 
   ngAfterViewInit(): void {
     (window as any).CESIUM_BASE_URL = '/assets/cesium/';
@@ -79,12 +100,14 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
 
     // 2. Optional: Google Maps Satellite ภาพถ่ายดาวเทียม นำมาแสดงพื้นหลัง
     try {
-      this.viewer.imageryLayers.addImageryProvider(
-        new Cesium.UrlTemplateImageryProvider({
-          url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-          credit: 'Google Maps Satellite',
-        })
-      );
+      const provider = new Cesium.UrlTemplateImageryProvider({
+        url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        credit: 'Google Maps Satellite',
+      });
+      this.layers.googleSatellite =
+        this.viewer.imageryLayers.addImageryProvider(provider);
+      // ซ่อนไว้ตามค่า checkbox (false)
+      this.layers.googleSatellite.show = this.layerControls.googleSatellite;
       console.log('✓ Tier 2: Google Maps Satellite loaded');
     } catch (error) {
       console.error('✗ Error loading Google Maps:', error);
@@ -101,24 +124,28 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     const wmsUrl = `${this.geoserverUrl}/wms`;
 
     // 1. ขอบเขตจังหวัด (Province Boundaries)
-    this.addWMSLayer(
+    this.layers.provinceBoundaries = this.addWMSLayer(
       wmsUrl,
       `${this.workspace}:regionth-province-v3`,
       'Province Boundaries'
     );
 
     // 2. ขอบเขตอำเภอ/ตำบล (District/Subdistrict Boundaries)
-    this.addWMSLayer(
+    this.layers.districtBoundaries = this.addWMSLayer(
       wmsUrl,
       `${this.workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
       'District/Subdistrict Boundaries'
     );
 
     // 3. ถนน (Roads)
-    this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_roads_free_1`, 'Roads');
+    this.layers.roads = this.addWMSLayer(
+      wmsUrl,
+      `${this.workspace}:gis_osm_roads_free_1`,
+      'Roads'
+    );
 
     // 4. คลอง/ทางน้ำ (Waterways)
-    this.addWMSLayer(
+    this.layers.waterways = this.addWMSLayer(
       wmsUrl,
       `${this.workspace}:gis_osm_waterways_free_1`,
       'Waterways'
@@ -126,22 +153,64 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   }
 
   // Helper method สำหรับเพิ่ม WMS Layer
-  private addWMSLayer(url: string, layers: string, name: string) {
+  private addWMSLayer(
+    url: string,
+    layers: string,
+    name: string
+  ): Cesium.ImageryLayer | null {
     try {
-      this.viewer.imageryLayers.addImageryProvider(
-        new Cesium.WebMapServiceImageryProvider({
-          url,
-          layers,
-          parameters: {
-            transparent: true,
-            format: 'image/png',
-            styles: '',
-          },
-        })
-      );
+      const provider = new Cesium.WebMapServiceImageryProvider({
+        url,
+        layers,
+        parameters: {
+          transparent: true,
+          format: 'image/png',
+          styles: '',
+        },
+      });
+      const layer = this.viewer.imageryLayers.addImageryProvider(provider);
+      // ซ่อนไว้ทุก layer ให้เลือกจาก checkbox เท่านั้น
+      layer.show = false;
       console.log(`✓ Tier 3: ${name} loaded (WMS)`);
+      return layer;
     } catch (error) {
       console.error(`✗ Error loading ${name}:`, error);
+      return null;
+    }
+  }
+
+  // ============================================
+  // Layer Toggle Methods (เรียกจาก checkbox)
+  // ============================================
+  toggleGoogleSatellite() {
+    if (this.layers.googleSatellite) {
+      this.layers.googleSatellite.show = this.layerControls.googleSatellite;
+    }
+  }
+
+  toggleProvinceBoundaries() {
+    if (this.layers.provinceBoundaries) {
+      this.layers.provinceBoundaries.show =
+        this.layerControls.provinceBoundaries;
+    }
+  }
+
+  toggleDistrictBoundaries() {
+    if (this.layers.districtBoundaries) {
+      this.layers.districtBoundaries.show =
+        this.layerControls.districtBoundaries;
+    }
+  }
+
+  toggleRoads() {
+    if (this.layers.roads) {
+      this.layers.roads.show = this.layerControls.roads;
+    }
+  }
+
+  toggleWaterways() {
+    if (this.layers.waterways) {
+      this.layers.waterways.show = this.layerControls.waterways;
     }
   }
 
