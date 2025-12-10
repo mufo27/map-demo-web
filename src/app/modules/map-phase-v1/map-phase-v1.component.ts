@@ -9,10 +9,11 @@ import * as Cesium from 'cesium';
 })
 export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   viewer!: Cesium.Viewer;
+  private geoserverUrl = 'http://192.168.88.217:6080/geoserver';
+  private workspace = 'test-thailand';
 
   ngAfterViewInit(): void {
     (window as any).CESIUM_BASE_URL = '/assets/cesium/';
-
     this.initCesium();
   }
 
@@ -27,99 +28,110 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       fullscreenButton: true,
     });
 
-    this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+    // เรียก methods ตาม Tier architecture
+    this.setupTier0_Globe();
+    this.setupTier1_Terrain();
+    this.setupTier2_Imagery();
+    this.setupTier3_VectorFeatures();
 
-    this.viewer.imageryLayers.removeAll();
-    this.viewer.imageryLayers.addImageryProvider(
-      new Cesium.OpenStreetMapImageryProvider({
-        url: 'https://a.tile.openstreetmap.org/',
-      })
-    );
-
-    this.addGeoServerWMS();
-
+    // Zoom to Thailand
     this.viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(100.5018, 13.7563, 2000000),
     });
   }
 
-  addGeoServerWMS() {
-    const geoserverUrl = 'http://192.168.88.217:6080/geoserver/wms';
-    const workspace = 'test-thailand';
+  // ============================================
+  // TIER 0: Globe (Ellipsoid) - Base Layer
+  // ============================================
+  setupTier0_Globe() {
+    // Cesium ใช้ Ellipsoid โดย default
+    console.log('✓ Tier 0: Globe (Ellipsoid) initialized');
+  }
 
-    // เพิ่ม Google Maps Satellite Layer (Phase 1 requirement)
-    // try {
-    //   this.viewer.imageryLayers.addImageryProvider(
-    //     new Cesium.UrlTemplateImageryProvider({
-    //       url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-    //       credit: 'Google Maps Satellite',
-    //     })
-    //   );
-    //   console.log('✓ Google Maps layer loaded');
-    // } catch (error) {
-    //   console.error('✗ Error loading Google Maps layer:', error);
-    // }
+  // ============================================
+  // TIER 1: Terrain (DEM - ความสูง)
+  // ============================================
+  setupTier1_Terrain() {
+    // ใช้ Ellipsoid Terrain (ไม่มีความสูง) สำหรับ Phase 1
+    // Phase 2 จะเปลี่ยนเป็น DEM จริง
+    this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+    console.log('✓ Tier 1: Terrain (Ellipsoid) initialized');
+  }
 
-    // Layer 1: ขอบเขตจังหวัด
-    // try {
-    //   this.viewer.imageryLayers.addImageryProvider(
-    //     new Cesium.WebMapServiceImageryProvider({
-    //       url: geoserverUrl,
-    //       layers: `${workspace}:regionth-province-v3`,
-    //       parameters: {
-    //         transparent: true,
-    //         format: 'image/png',
-    //         styles: '',
-    //       },
-    //     })
-    //   );
-    //   console.log('✓ Province boundaries layer loaded');
-    // } catch (error) {
-    //   console.error('✗ Error loading province boundaries:', error);
-    // }
+  // ============================================
+  // TIER 2: Imagery (Orthophoto, แผนที่)
+  // ============================================
+  setupTier2_Imagery() {
+    // ลบ default imagery
+    this.viewer.imageryLayers.removeAll();
 
-    // Layer 2: ขอบเขตอำเภอ
-    // try {
-    //   this.viewer.imageryLayers.addImageryProvider(
-    //     new Cesium.WebMapServiceImageryProvider({
-    //       url: geoserverUrl,
-    //       layers: `${workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
-    //       parameters: {
-    //         transparent: true,
-    //         format: 'image/png',
-    //         styles: '',
-    //       },
-    //     })
-    //   );
-    //   console.log('✓ District/Subdistrict boundaries layer loaded');
-    // } catch (error) {
-    //   console.error('✗ Error loading district boundaries:', error);
-    // }
+    // 1. Base Map: OpenStreetMap
+    try {
+      this.viewer.imageryLayers.addImageryProvider(
+        new Cesium.OpenStreetMapImageryProvider({
+          url: 'https://a.tile.openstreetmap.org/',
+        })
+      );
+      console.log('✓ Tier 2: OSM Base Map loaded');
+    } catch (error) {
+      console.error('✗ Error loading OSM:', error);
+    }
 
-    // Layer 3: ถนน
-    // try {
-    //   this.viewer.imageryLayers.addImageryProvider(
-    //     new Cesium.WebMapServiceImageryProvider({
-    //       url: geoserverUrl,
-    //       layers: `${workspace}:gis_osm_roads_free_1`,
-    //       parameters: {
-    //         transparent: true,
-    //         format: 'image/png',
-    //         styles: '',
-    //       },
-    //     })
-    //   );
-    //   console.log('✓ Roads layer loaded');
-    // } catch (error) {
-    //   console.error('✗ Error loading roads:', error);
-    // }
+    // 2. Optional: Google Maps Satellite ภาพถ่ายดาวเทียม นำมาแสดงพื้นหลัง
+    try {
+      this.viewer.imageryLayers.addImageryProvider(
+        new Cesium.UrlTemplateImageryProvider({
+          url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+          credit: 'Google Maps Satellite',
+        })
+      );
+      console.log('✓ Tier 2: Google Maps Satellite loaded');
+    } catch (error) {
+      console.error('✗ Error loading Google Maps:', error);
+    }
+  }
 
-    // Layer 4: คลอง/ทางน้ำ (Waterways)
+  // ============================================
+  // TIER 3: Vector/Features (ถนน, ขอบเขต, POI)
+  // ============================================
+  setupTier3_VectorFeatures() {
+    // สำหรับ Phase 1 ใช้ WMS (Imagery) ก่อน
+    // Phase 2 จะเปลี่ยนเป็น WFS (Vector) เพื่อให้คลิกและ query ได้
+
+    const wmsUrl = `${this.geoserverUrl}/wms`;
+
+    // 1. ขอบเขตจังหวัด (Province Boundaries)
+    this.addWMSLayer(
+      wmsUrl,
+      `${this.workspace}:regionth-province-v3`,
+      'Province Boundaries'
+    );
+
+    // 2. ขอบเขตอำเภอ/ตำบล (District/Subdistrict Boundaries)
+    this.addWMSLayer(
+      wmsUrl,
+      `${this.workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
+      'District/Subdistrict Boundaries'
+    );
+
+    // 3. ถนน (Roads)
+    this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_roads_free_1`, 'Roads');
+
+    // 4. คลอง/ทางน้ำ (Waterways)
+    this.addWMSLayer(
+      wmsUrl,
+      `${this.workspace}:gis_osm_waterways_free_1`,
+      'Waterways'
+    );
+  }
+
+  // Helper method สำหรับเพิ่ม WMS Layer
+  private addWMSLayer(url: string, layers: string, name: string) {
     try {
       this.viewer.imageryLayers.addImageryProvider(
         new Cesium.WebMapServiceImageryProvider({
-          url: geoserverUrl,
-          layers: `${workspace}:gis_osm_waterways_free_1`,
+          url,
+          layers,
           parameters: {
             transparent: true,
             format: 'image/png',
@@ -127,9 +139,9 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
           },
         })
       );
-      console.log('✓ Waterways layer loaded');
+      console.log(`✓ Tier 3: ${name} loaded (WMS)`);
     } catch (error) {
-      console.error('✗ Error loading waterways:', error);
+      console.error(`✗ Error loading ${name}:`, error);
     }
   }
 
