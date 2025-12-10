@@ -3,8 +3,8 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'dashboard',
-    pathMatch: 'full'
+    redirectTo: 'map',
+    pathMatch: 'full',
   },
   // {
   //   path: '',
@@ -55,6 +55,18 @@ export const routes: Routes = [
   //     }
   //   ]
   // },
+
+  {
+    path: 'map',
+    loadComponent: () =>
+      import('./modules/map-phase-v1/map-phase-v1.component').then(
+        (m) => m.MapPhaseV1Component
+      ),
+    data: {
+      title: 'Map',
+    },
+  },
+
   // {
   //   path: '404',
   //   loadComponent: () => import('./views/pages/page404/page404.component').then(m => m.Page404Component),
@@ -83,5 +95,5 @@ export const routes: Routes = [
   //     title: 'Register Page'
   //   }
   // },
-  { path: '**', redirectTo: 'dashboard' }
+  { path: '**', redirectTo: 'map' },
 ];

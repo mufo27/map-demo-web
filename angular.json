@@ -35,13 +35,21 @@
             "preserveSymlinks": true,
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              {
+                "glob": "**/*",
+                "input": "./node_modules/cesium/Build/Cesium",
+                "output": "./assets/cesium"
+              }
             ],
             "styles": [
-              "src/scss/styles.scss"
+              "src/scss/styles.scss",
+              "node_modules/cesium/Build/Cesium/Widgets/widgets.css"
             ],
             "scripts": [],
-            "allowedCommonJsDependencies": [],
+            "allowedCommonJsDependencies": [
+              "cesium"
+            ],
             "stylePreprocessorOptions": {
               "sass": {
                 "silenceDeprecations": []

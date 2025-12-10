@@ -37,6 +37,7 @@
     "@coreui/icons": "^3.0.1",
     "@coreui/icons-angular": "~5.5.24",
     "@coreui/utils": "^2.0.2",
+    "cesium": "^1.136.0",
     "chart.js": "^4.5.1",
     "lodash-es": "^4.17.21",
     "ngx-scrollbar": "^13.0.3",
