@@ -13,7 +13,7 @@ import * as Cesium from 'cesium';
 export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   viewer!: Cesium.Viewer;
   private geoserverUrl = 'http://192.168.88.217:6080/geoserver';
-  private workspace = 'test-thailand';
+  private workspace = '	thailand-demo';
 
   // Layer references for toggling
   private layers = {
@@ -35,6 +35,12 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
 
   // Panel collapse state
   panelCollapsed = false;
+
+  // Search feature properties
+  searchQuery = '';
+  searchResults: any[] = [];
+  showSearchResults = false;
+  private searchTimeout: any;
 
   // Toggle panel method
   togglePanel() {
@@ -134,7 +140,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     // 1. ขอบเขตจังหวัด (Province Boundaries)
     this.layers.provinceBoundaries = this.addWMSLayer(
       wmsUrl,
-      `${this.workspace}:regionth-province-v3`,
+      `${this.workspace}:th_province`,
       'Province Boundaries'
     );
 
@@ -155,7 +161,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     // 4. คลอง/ทางน้ำ (Waterways)
     this.layers.waterways = this.addWMSLayer(
       wmsUrl,
-      `${this.workspace}:gis_osm_waterways_free_1`,
+      `${this.workspace}:gis_osm_waterways`,
       'Waterways'
     );
   }
@@ -222,7 +228,220 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     }
   }
 
+  // ============================================
+  // Search Feature Methods
+  // ============================================
+  onSearchInput() {
+    // Debounce search to avoid too many requests
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+
+    if (!this.searchQuery.trim()) {
+      this.searchResults = [];
+      this.showSearchResults = false;
+      return;
+    }
+
+    this.searchTimeout = setTimeout(() => {
+      this.performSearch();
+    }, 300); // 300ms debounce
+  }
+
+  async performSearch() {
+    if (!this.searchQuery.trim()) return;
+
+    this.searchResults = [];
+    this.showSearchResults = true;
+
+    try {
+      // Search from GeoServer WFS
+      const results = await this.searchGeoServer(this.searchQuery);
+      this.searchResults = results;
+    } catch (error) {
+      console.error('Search error:', error);
+      this.searchResults = [];
+    }
+  }
+
+  async searchGeoServer(query: string): Promise<any[]> {
+    const results: any[] = [];
+
+    try {
+      // 1. Search Provinces (จังหวัด)
+      const provinceResults = await this.searchLayer(
+        `${this.workspace}:regionth-province-v3`,
+        query,
+        'province',
+        'PROV_NAMT',
+        'PROV_NAMEEN'
+      );
+      results.push(...provinceResults);
+
+      // 2. Search Districts/Subdistricts (อำเภอ/ตำบล)
+      const districtResults = await this.searchLayer(
+        `${this.workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
+        query,
+        'district',
+        'ADM2_TH',
+        'ADM2_EN'
+      );
+      results.push(...districtResults);
+
+      // 3. Search POI from GeoServer (if POI layer exists)
+      // TODO: Replace with actual POI layer name from GeoServer
+      // const poiResults = await this.searchLayer(
+      //   `${this.workspace}:poi_layer`,
+      //   query,
+      //   'poi',
+      //   'NAME_TH',
+      //   'NAME_EN'
+      // );
+      // results.push(...poiResults);
+    } catch (error) {
+      console.error('GeoServer search error:', error);
+    }
+
+    return results.slice(0, 10); // Limit to 10 results
+  }
+
+  async searchLayer(
+    layerName: string,
+    query: string,
+    type: string,
+    thField: string,
+    enField: string
+  ): Promise<any[]> {
+    try {
+      const wfsUrl = `${this.geoserverUrl}/wfs`;
+
+      // Build CQL_FILTER for Thai and English search
+      const filter = `${thField} LIKE '%${query}%' OR ${enField} LIKE '%${query}%'`;
+
+      const params = new URLSearchParams({
+        service: 'WFS',
+        version: '1.0.0',
+        request: 'GetFeature',
+        typeName: layerName,
+        outputFormat: 'application/json',
+        CQL_FILTER: filter,
+        maxFeatures: '5',
+      });
+
+      const response = await fetch(`${wfsUrl}?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error(`WFS request failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.features || data.features.length === 0) {
+        return [];
+      }
+
+      // Parse and format results
+      return data.features.map((feature: any) => {
+        const props = feature.properties;
+        const geometry = feature.geometry;
+
+        // Calculate center point from geometry
+        let longitude = 0;
+        let latitude = 0;
+        let height = 50000; // Default zoom height
+
+        if (geometry.type === 'Point') {
+          [longitude, latitude] = geometry.coordinates;
+        } else if (geometry.type === 'Polygon') {
+          // Calculate centroid of polygon
+          const coords = geometry.coordinates[0];
+          longitude =
+            coords.reduce((sum: number, c: any) => sum + c[0], 0) /
+            coords.length;
+          latitude =
+            coords.reduce((sum: number, c: any) => sum + c[1], 0) /
+            coords.length;
+          height = type === 'province' ? 200000 : 100000;
+        } else if (geometry.type === 'MultiPolygon') {
+          // Calculate centroid of first polygon
+          const coords = geometry.coordinates[0][0];
+          longitude =
+            coords.reduce((sum: number, c: any) => sum + c[0], 0) /
+            coords.length;
+          latitude =
+            coords.reduce((sum: number, c: any) => sum + c[1], 0) /
+            coords.length;
+          height = type === 'province' ? 200000 : 100000;
+        }
+
+        // Get name (prefer Thai, fallback to English)
+        const nameTh = props[thField] || '';
+        const nameEn = props[enField] || '';
+        const displayName = nameTh || nameEn;
+
+        return {
+          name: displayName,
+          nameTh,
+          nameEn,
+          type,
+          typeLabel: this.getTypeLabel(type),
+          longitude,
+          latitude,
+          height,
+          icon: this.getTypeIcon(type),
+        };
+      });
+    } catch (error) {
+      console.error(`Error searching ${layerName}:`, error);
+      return [];
+    }
+  }
+
+  getTypeLabel(type: string): string {
+    const labels: { [key: string]: string } = {
+      province: 'จังหวัด',
+      district: 'อำเภอ/ตำบล',
+      poi: 'สถานที่',
+    };
+    return labels[type] || type;
+  }
+
+  getTypeIcon(type: string): string {
+    const icons: { [key: string]: string } = {
+      province: '🗺️',
+      district: '📍',
+      poi: '🏢',
+    };
+    return icons[type] || '📌';
+  }
+
+  selectSearchResult(result: any) {
+    // Fly to the selected location
+    this.viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(
+        result.longitude,
+        result.latitude,
+        result.height
+      ),
+      duration: 2,
+    });
+
+    // Hide search results
+    this.showSearchResults = false;
+
+    console.log('Flying to:', result.name, result);
+  }
+
+  clearSearch() {
+    this.searchQuery = '';
+    this.searchResults = [];
+    this.showSearchResults = false;
+  }
+
   ngOnDestroy(): void {
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
     this.viewer?.destroy();
   }
 }

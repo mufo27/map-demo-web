@@ -19,6 +19,177 @@
   height: 100%;
 }
 
+// ============================================
+// Search Container (ด้านบนตรงกลาง - เพื่อไม่ให้ทับ Tools Panel)
+// ============================================
+.search-container {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  max-width: calc(100vw - 40px);
+  z-index: 1001;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 10px 14px;
+  gap: 8px;
+  transition: all 0.3s ease;
+
+  &:focus-within {
+    box-shadow: 0 4px 16px rgba(0, 123, 255, 0.3);
+    background: white;
+  }
+}
+
+.search-icon {
+  font-size: 18px;
+  color: #666;
+  font-style: normal;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  padding: 4px 8px;
+  background: transparent;
+  color: #2c3e50;
+
+  &::placeholder {
+    color: #95a5a6;
+  }
+}
+
+.clear-button {
+  background: transparent;
+  border: none;
+  color: #95a5a6;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+  }
+}
+
+.search-results {
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 400px;
+  overflow-y: auto;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  gap: 12px;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: rgba(0, 123, 255, 0.08);
+    padding-left: 18px;
+  }
+}
+
+.result-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.result-name {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-type {
+  font-size: 12px;
+  color: #7f8c8d;
+}
+
+.no-results {
+  text-align: center;
+  padding: 32px 20px;
+  color: #95a5a6;
+
+  i {
+    font-size: 48px;
+    font-style: normal;
+    display: block;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.search-results::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-results::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.search-results::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
 // Common panel styles
 %panel-base {
   background: rgba(255, 255, 255, 0.95);
