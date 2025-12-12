@@ -13,7 +13,7 @@ import * as Cesium from 'cesium';
 export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   viewer!: Cesium.Viewer;
   private geoserverUrl = 'http://192.168.88.217:6080/geoserver';
-  private workspace = '	thailand-demo';
+  private workspace = 'thailand-demo';
 
   // Layer references for toggling
   private layers = {
@@ -147,14 +147,14 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     // 2. ขอบเขตอำเภอ/ตำบล (District/Subdistrict Boundaries)
     this.layers.districtBoundaries = this.addWMSLayer(
       wmsUrl,
-      `${this.workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
+      `test-thailand:tha_admbndl_admALL_rtsd_itos_20220121`,
       'District/Subdistrict Boundaries'
     );
 
     // 3. ถนน (Roads)
     this.layers.roads = this.addWMSLayer(
       wmsUrl,
-      `${this.workspace}:gis_osm_roads_free_1`,
+      `${this.workspace}:gis_osm_roads`,
       'Roads'
     );
 
@@ -270,11 +270,11 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     try {
       // 1. Search Provinces (จังหวัด)
       const provinceResults = await this.searchLayer(
-        `${this.workspace}:regionth-province-v3`,
+        `${this.workspace}:th_province`,
         query,
         'province',
-        'PROV_NAMT',
-        'PROV_NAMEEN'
+        'prov_namt',
+        'prov_nameen'
       );
       results.push(...provinceResults);
 
@@ -283,8 +283,8 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         `${this.workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
         query,
         'district',
-        'ADM2_TH',
-        'ADM2_EN'
+        'adm2_th',
+        'adm2_en'
       );
       results.push(...districtResults);
 
