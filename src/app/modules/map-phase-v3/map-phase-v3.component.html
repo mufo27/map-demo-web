@@ -57,6 +57,22 @@
 
       <!-- Layer Controls Section -->
       <div class="layer-controls">
+        <!-- OpenStreetMap -->
+        <div class="layer-item">
+          <label class="layer-label">
+            <input
+              type="checkbox"
+              [(ngModel)]="layerControls.openStreetMap"
+              (change)="toggleOpenStreetMap()"
+              class="layer-checkbox"
+            />
+            <span class="layer-name">
+              <i class="icon-map"></i>
+              OpenStreetMap
+            </span>
+          </label>
+        </div>
+
         <div class="layer-item">
           <label class="layer-label">
             <input
@@ -81,7 +97,7 @@
           <label class="layer-label">
             <input
               type="checkbox"
-              [(ngModel)]="layerControls.demLayer"
+              [(ngModel)]="layerControls.dem"
               (change)="toggleDEMLayer()"
               class="layer-checkbox"
             />
@@ -96,7 +112,7 @@
           <label class="layer-label">
             <input
               type="checkbox"
-              [(ngModel)]="layerControls.contourLayer"
+              [(ngModel)]="layerControls.contour"
               (change)="toggleContourLayer()"
               class="layer-checkbox"
             />

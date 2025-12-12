@@ -17,6 +17,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
 
   // Layer references for toggling
   private layers = {
+    openStreetMap: null as Cesium.ImageryLayer | null,
     googleSatellite: null as Cesium.ImageryLayer | null,
     provinceBoundaries: null as Cesium.ImageryLayer | null,
     districtBoundaries: null as Cesium.ImageryLayer | null,
@@ -26,6 +27,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
 
   // Layer visibility states (bound to checkboxes)
   layerControls = {
+    openStreetMap: false,
     googleSatellite: false,
     provinceBoundaries: false,
     districtBoundaries: false,
@@ -97,22 +99,23 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   // TIER 2: Imagery (Orthophoto, แผนที่)
   // ============================================
   setupTier2_Imagery() {
-    // ลบ default imagery
-    this.viewer.imageryLayers.removeAll();
+    // ใช้ Cesium default base map (Bing Maps)
+    console.log('✓ Tier 2: Using Cesium default base map (Bing Maps)');
 
-    // 1. Base Map: OpenStreetMap
+    // 1. Optional: OpenStreetMap
     try {
-      this.viewer.imageryLayers.addImageryProvider(
-        new Cesium.OpenStreetMapImageryProvider({
-          url: 'https://a.tile.openstreetmap.org/',
-        })
-      );
-      console.log('✓ Tier 2: OSM Base Map loaded');
+      const provider = new Cesium.OpenStreetMapImageryProvider({
+        url: 'https://a.tile.openstreetmap.org/',
+      });
+      this.layers.openStreetMap =
+        this.viewer.imageryLayers.addImageryProvider(provider);
+      this.layers.openStreetMap.show = this.layerControls.openStreetMap;
+      console.log('✓ Tier 2: OpenStreetMap loaded (optional)');
     } catch (error) {
       console.error('✗ Error loading OSM:', error);
     }
 
-    // 2. Optional: Google Maps Satellite ภาพถ่ายดาวเทียม นำมาแสดงพื้นหลัง
+    // 2. Optional: Google Maps Satellite
     try {
       const provider = new Cesium.UrlTemplateImageryProvider({
         url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
@@ -196,6 +199,12 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   // ============================================
   // Layer Toggle Methods (เรียกจาก checkbox)
   // ============================================
+  toggleOpenStreetMap() {
+    if (this.layers.openStreetMap) {
+      this.layers.openStreetMap.show = this.layerControls.openStreetMap;
+    }
+  }
+
   toggleGoogleSatellite() {
     if (this.layers.googleSatellite) {
       this.layers.googleSatellite.show = this.layerControls.googleSatellite;

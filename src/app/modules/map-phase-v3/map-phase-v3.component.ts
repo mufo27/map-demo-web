@@ -25,24 +25,26 @@ export class MapPhaseV3Component implements AfterViewInit, OnDestroy {
 
   // Layer references for toggling
   private layers = {
+    openStreetMap: null as Cesium.ImageryLayer | null,
     googleSatellite: null as Cesium.ImageryLayer | null,
     provinceBoundaries: null as Cesium.ImageryLayer | null,
     districtBoundaries: null as Cesium.ImageryLayer | null,
     roads: null as Cesium.ImageryLayer | null,
     waterways: null as Cesium.ImageryLayer | null,
-    demLayer: null as Cesium.ImageryLayer | null,
-    contourLayer: null as Cesium.ImageryLayer | null,
+    dem: null as Cesium.ImageryLayer | null,
+    contour: null as Cesium.ImageryLayer | null,
   };
 
   // Layer visibility states (bound to checkboxes)
   layerControls = {
+    openStreetMap: false,
     googleSatellite: false,
     provinceBoundaries: false,
     districtBoundaries: false,
     roads: false,
     waterways: false,
-    demLayer: false,
-    contourLayer: false,
+    dem: false,
+    contour: false,
   };
 
   // Phase 3: Shopping Cart
@@ -120,15 +122,18 @@ export class MapPhaseV3Component implements AfterViewInit, OnDestroy {
   }
 
   setupTier2_Imagery() {
-    this.viewer.imageryLayers.removeAll();
+    // ใช้ Cesium default base map (Bing Maps)
+    console.log('✓ Tier 2: Using Cesium default base map (Bing Maps)');
 
+    // Optional: OpenStreetMap (เป็น overlay)
     try {
-      this.viewer.imageryLayers.addImageryProvider(
-        new Cesium.OpenStreetMapImageryProvider({
-          url: 'https://a.tile.openstreetmap.org/',
-        })
-      );
-      console.log('✓ Tier 2: OSM Base Map loaded');
+      const provider = new Cesium.OpenStreetMapImageryProvider({
+        url: 'https://a.tile.openstreetmap.org/',
+      });
+      this.layers.openStreetMap =
+        this.viewer.imageryLayers.addImageryProvider(provider);
+      this.layers.openStreetMap.show = this.layerControls.openStreetMap;
+      console.log('✓ Tier 2: OpenStreetMap loaded (optional)');
     } catch (error) {
       console.error('✗ Error loading OSM:', error);
     }
@@ -158,7 +163,7 @@ export class MapPhaseV3Component implements AfterViewInit, OnDestroy {
 
     // DEM Layer (ถ้ามีใน GeoServer)
     // TODO: แก้ layer name ให้ตรงกับ GeoServer
-    // this.layers.demLayer = this.addWMSLayer(
+    // this.layers.dem = this.addWMSLayer(
     //   wmsUrl,
     //   `${this.workspace}:dem_layer`,
     //   'DEM Layer'
@@ -166,7 +171,7 @@ export class MapPhaseV3Component implements AfterViewInit, OnDestroy {
 
     // Contour Layer (ถ้ามีใน GeoServer)
     // TODO: แก้ layer name ให้ตรงกับ GeoServer
-    // this.layers.contourLayer = this.addWMSLayer(
+    // this.layers.contour = this.addWMSLayer(
     //   wmsUrl,
     //   `${this.workspace}:contour_layer`,
     //   'Contour Layer'
@@ -339,6 +344,12 @@ export class MapPhaseV3Component implements AfterViewInit, OnDestroy {
   }
 
   // Layer toggle methods
+  toggleOpenStreetMap() {
+    if (this.layers.openStreetMap) {
+      this.layers.openStreetMap.show = this.layerControls.openStreetMap;
+    }
+  }
+
   toggleGoogleSatellite() {
     if (this.layers.googleSatellite) {
       this.layers.googleSatellite.show = this.layerControls.googleSatellite;
@@ -372,14 +383,14 @@ export class MapPhaseV3Component implements AfterViewInit, OnDestroy {
   }
 
   toggleDEMLayer() {
-    if (this.layers.demLayer) {
-      this.layers.demLayer.show = this.layerControls.demLayer;
+    if (this.layers.dem) {
+      this.layers.dem.show = this.layerControls.dem;
     }
   }
 
   toggleContourLayer() {
-    if (this.layers.contourLayer) {
-      this.layers.contourLayer.show = this.layerControls.contourLayer;
+    if (this.layers.contour) {
+      this.layers.contour.show = this.layerControls.contour;
     }
   }
 
