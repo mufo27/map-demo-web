@@ -188,7 +188,7 @@ export class MapPhaseV3Component implements AfterViewInit, OnDestroy {
 
     this.layers.districtBoundaries = this.addWMSLayer(
       wmsUrl,
-      `test-thailand:tha_admbndl_admALL_rtsd_itos_20220121`,
+      `${this.workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
       'District/Subdistrict Boundaries'
     );
 
@@ -425,19 +425,30 @@ export class MapPhaseV3Component implements AfterViewInit, OnDestroy {
         `${this.workspace}:th_province`,
         query,
         'province',
-        'prov_namt',
-        'prov_nameen'
+        'PROV_NAMT',
+        'PROV_NAME'
       );
       results.push(...provinceResults);
 
+      // Search districts - Note: current schema doesn't have name fields
       const districtResults = await this.searchLayer(
-        `${this.workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
+        `test-thailand:tha_admbndl_admALL_rtsd_itos_20220121`,
         query,
         'district',
-        'adm2_th',
-        'adm2_en'
+        'ADM2_TH',
+        'ADM2_EN'
       );
       results.push(...districtResults);
+
+      // Search POI (Points of Interest)
+      const poiResults = await this.searchLayer(
+        `${this.workspace}:gis_osm_pois`,
+        query,
+        'poi',
+        'name',
+        'name'
+      );
+      results.push(...poiResults);
     } catch (error) {
       console.error('GeoServer search error:', error);
     }
@@ -464,6 +475,7 @@ export class MapPhaseV3Component implements AfterViewInit, OnDestroy {
         outputFormat: 'application/json',
         CQL_FILTER: filter,
         maxFeatures: '5',
+        srsName: 'EPSG:4326', // Request coordinates in WGS84 (lat/lon)
       });
 
       const response = await fetch(`${wfsUrl}?${params.toString()}`);

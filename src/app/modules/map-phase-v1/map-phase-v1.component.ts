@@ -147,7 +147,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     // 2. ขอบเขตอำเภอ/ตำบล (District/Subdistrict Boundaries)
     this.layers.districtBoundaries = this.addWMSLayer(
       wmsUrl,
-      `test-thailand:tha_admbndl_admALL_rtsd_itos_20220121`,
+      `${this.workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
       'District/Subdistrict Boundaries'
     );
 
@@ -273,23 +273,31 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         `${this.workspace}:th_province`,
         query,
         'province',
-        'prov_namt',
-        'prov_nameen'
+        'PROV_NAMT',
+        'PROV_NAME'
       );
       results.push(...provinceResults);
 
-      // 2. Search Districts/Subdistricts (อำเภอ/ตำบล)
+      // Search districts - Note: current schema doesn't have name fields
+      // Layer exists but may need schema update to add ADM2_TH/ADM2_EN fields
       const districtResults = await this.searchLayer(
-        `${this.workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
+        `test-thailand:tha_admbndl_admALL_rtsd_itos_20220121`,
         query,
         'district',
-        'adm2_th',
-        'adm2_en'
+        'ADM2_TH',
+        'ADM2_EN'
       );
       results.push(...districtResults);
 
-      // 3. Search POI from GeoServer (if POI layer exists)
-      // TODO: Replace with actual POI layer name from GeoServer
+      // Search POI (Points of Interest)
+      const poiResults = await this.searchLayer(
+        `${this.workspace}:gis_osm_pois`,
+        query,
+        'poi',
+        'name',
+        'name'
+      );
+      results.push(...poiResults);
       // const poiResults = await this.searchLayer(
       //   `${this.workspace}:poi_layer`,
       //   query,
@@ -326,24 +334,43 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         outputFormat: 'application/json',
         CQL_FILTER: filter,
         maxFeatures: '5',
+        srsName: 'EPSG:4326', // Request coordinates in WGS84 (lat/lon)
       });
 
-      const response = await fetch(`${wfsUrl}?${params.toString()}`);
+      const fullUrl = `${wfsUrl}?${params.toString()}`;
+      console.log('🔍 Search Request:', {
+        layerName,
+        query,
+        filter,
+        url: fullUrl,
+      });
+
+      const response = await fetch(fullUrl);
+
+      console.log('📡 Response Status:', response.status, response.statusText);
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ WFS Error Response:', errorText);
         throw new Error(`WFS request failed: ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('📦 WFS Response Data:', data);
 
       if (!data.features || data.features.length === 0) {
+        console.warn('⚠️ No features found for query:', query);
         return [];
       }
+
+      console.log(`✅ Found ${data.features.length} features`);
 
       // Parse and format results
       return data.features.map((feature: any) => {
         const props = feature.properties;
         const geometry = feature.geometry;
+
+        console.log('📄 Feature properties:', props);
 
         // Calculate center point from geometry
         let longitude = 0;
@@ -379,6 +406,8 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         const nameEn = props[enField] || '';
         const displayName = nameTh || nameEn;
 
+        console.log(`📌 Parsed: ${displayName} at (${longitude}, ${latitude})`);
+
         return {
           name: displayName,
           nameTh,
@@ -392,7 +421,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         };
       });
     } catch (error) {
-      console.error(`Error searching ${layerName}:`, error);
+      console.error(`❌ Error searching ${layerName}:`, error);
       return [];
     }
   }
