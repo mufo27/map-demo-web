@@ -21,6 +21,16 @@ export const navItems: INavData[] = [
     },
   },
 
+  {
+    name: 'Map Phase 3',
+    url: '/map-phase-v3',
+    iconComponent: { name: 'cil-cart' },
+    badge: {
+      color: 'warning',
+      text: 'NEW',
+    },
+  },
+
   // {
   //   title: true,
   //   name: 'Theme'

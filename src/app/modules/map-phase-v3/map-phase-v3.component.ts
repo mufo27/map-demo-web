@@ -3,14 +3,22 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as Cesium from 'cesium';
 
+interface CartItem {
+  id: string;
+  name: string;
+  type: string;
+  bounds: any;
+  addedAt: Date;
+}
+
 @Component({
-  selector: 'app-map-phase-v2',
+  selector: 'app-map-phase-v3',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './map-phase-v2.component.html',
-  styleUrl: './map-phase-v2.component.scss',
+  templateUrl: './map-phase-v3.component.html',
+  styleUrl: './map-phase-v3.component.scss',
 })
-export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
+export class MapPhaseV3Component implements AfterViewInit, OnDestroy {
   viewer!: Cesium.Viewer;
   private geoserverUrl = 'http://192.168.88.217:6080/geoserver';
   private workspace = 'test-thailand';
@@ -22,7 +30,6 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     districtBoundaries: null as Cesium.ImageryLayer | null,
     roads: null as Cesium.ImageryLayer | null,
     waterways: null as Cesium.ImageryLayer | null,
-    // Phase 2: เพิ่ม DEM และ Contour
     demLayer: null as Cesium.ImageryLayer | null,
     contourLayer: null as Cesium.ImageryLayer | null,
   };
@@ -34,17 +41,40 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     districtBoundaries: false,
     roads: false,
     waterways: false,
-    // Phase 2
     demLayer: false,
     contourLayer: false,
   };
 
-  // Panel collapse state
-  panelCollapsed = false;
+  // Phase 3: Shopping Cart
+  cart: CartItem[] = [];
+  showCart = false;
+  selectedFeatures: any[] = [];
 
-  // Toggle panel method
-  togglePanel() {
-    this.panelCollapsed = !this.panelCollapsed;
+  // Phase 3: Selection mode
+  selectionMode = false;
+
+  // Phase 3: Watermark settings
+  watermarkSettings = {
+    enabled: true,
+    text: 'DEMO - Not for commercial use',
+    opacity: 0.5,
+  };
+
+  // Panel collapse states
+  panelStates = {
+    layerControl: true, // expanded by default
+    tools: true, // expanded by default
+    cart: false, // collapsed by default
+    selection: true, // expanded by default
+  };
+
+  // Toggle panel methods
+  toggleLayerPanel() {
+    this.panelStates.layerControl = !this.panelStates.layerControl;
+  }
+
+  toggleToolsPanel() {
+    this.panelStates.tools = !this.panelStates.tools;
   }
 
   ngAfterViewInit(): void {
@@ -63,48 +93,29 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
       fullscreenButton: true,
     });
 
-    // เรียก methods ตาม Tier architecture
     this.setupTier0_Globe();
     this.setupTier1_Terrain();
     this.setupTier2_Imagery();
     this.setupTier3_VectorFeatures();
-
-    // Phase 2: เพิ่ม click event handler
     this.setupMapClickHandler();
 
-    // Zoom to Thailand
     this.viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(100.5018, 13.7563, 2000000),
     });
   }
 
-  // ============================================
-  // TIER 0: Globe (Ellipsoid) - Base Layer
-  // ============================================
   setupTier0_Globe() {
-    // Cesium ใช้ Ellipsoid โดย default
     console.log('✓ Tier 0: Globe (Ellipsoid) initialized');
   }
 
-  // ============================================
-  // TIER 1: Terrain (DEM - ความสูง)
-  // ============================================
   setupTier1_Terrain() {
-    // Phase 2: ใช้ DEM terrain จริง (ถ้ามี)
-    // สำหรับตอนนี้ยังใช้ Ellipsoid ไปก่อน
     this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
     console.log('✓ Tier 1: Terrain (Ellipsoid) initialized');
-    // TODO: เปลี่ยนเป็น DEM terrain จาก GeoServer
   }
 
-  // ============================================
-  // TIER 2: Imagery (Orthophoto, แผนที่)
-  // ============================================
   setupTier2_Imagery() {
-    // ลบ default imagery
     this.viewer.imageryLayers.removeAll();
 
-    // 1. Base Map: OpenStreetMap
     try {
       this.viewer.imageryLayers.addImageryProvider(
         new Cesium.OpenStreetMapImageryProvider({
@@ -116,7 +127,6 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
       console.error('✗ Error loading OSM:', error);
     }
 
-    // 2. Optional: Google Maps Satellite ภาพถ่ายดาวเทียม นำมาแสดงพื้นหลัง
     try {
       const provider = new Cesium.UrlTemplateImageryProvider({
         url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
@@ -130,47 +140,12 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
       console.error('✗ Error loading Google Maps:', error);
     }
 
-    // Phase 2: เพิ่ม DEM และ Contour layers
+    // Phase 2/3: เพิ่ม DEM และ Contour layers
     this.addDEMAndContourLayers();
   }
 
   // ============================================
-  // TIER 3: Vector/Features (ถนน, ขอบเขต, POI)
-  // ============================================
-  setupTier3_VectorFeatures() {
-    const wmsUrl = `${this.geoserverUrl}/wms`;
-
-    // 1. ขอบเขตจังหวัด (Province Boundaries)
-    this.layers.provinceBoundaries = this.addWMSLayer(
-      wmsUrl,
-      `${this.workspace}:regionth-province-v3`,
-      'Province Boundaries'
-    );
-
-    // 2. ขอบเขตอำเภอ/ตำบล (District/Subdistrict Boundaries)
-    this.layers.districtBoundaries = this.addWMSLayer(
-      wmsUrl,
-      `${this.workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
-      'District/Subdistrict Boundaries'
-    );
-
-    // 3. ถนน (Roads)
-    this.layers.roads = this.addWMSLayer(
-      wmsUrl,
-      `${this.workspace}:gis_osm_roads_free_1`,
-      'Roads'
-    );
-
-    // 4. คลอง/ทางน้ำ (Waterways)
-    this.layers.waterways = this.addWMSLayer(
-      wmsUrl,
-      `${this.workspace}:gis_osm_waterways_free_1`,
-      'Waterways'
-    );
-  }
-
-  // ============================================
-  // PHASE 2: DEM และ Contour Layers
+  // PHASE 2/3: DEM และ Contour Layers
   // ============================================
   addDEMAndContourLayers() {
     const wmsUrl = `${this.geoserverUrl}/wms`;
@@ -196,16 +171,40 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     );
   }
 
-  // ============================================
-  // PHASE 2: Map Click Handler
-  // ============================================
+  setupTier3_VectorFeatures() {
+    const wmsUrl = `${this.geoserverUrl}/wms`;
+
+    this.layers.provinceBoundaries = this.addWMSLayer(
+      wmsUrl,
+      `${this.workspace}:regionth-province-v3`,
+      'Province Boundaries'
+    );
+
+    this.layers.districtBoundaries = this.addWMSLayer(
+      wmsUrl,
+      `${this.workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
+      'District/Subdistrict Boundaries'
+    );
+
+    this.layers.roads = this.addWMSLayer(
+      wmsUrl,
+      `${this.workspace}:gis_osm_roads_free_1`,
+      'Roads'
+    );
+
+    this.layers.waterways = this.addWMSLayer(
+      wmsUrl,
+      `${this.workspace}:gis_osm_waterways_free_1`,
+      'Waterways'
+    );
+  }
+
   setupMapClickHandler() {
     const handler = new Cesium.ScreenSpaceEventHandler(
       this.viewer.scene.canvas
     );
 
     handler.setInputAction((movement: any) => {
-      // Get clicked position
       const pickedPosition = this.viewer.camera.pickEllipsoid(
         movement.position,
         this.viewer.scene.globe.ellipsoid
@@ -216,27 +215,98 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         const longitude = Cesium.Math.toDegrees(cartographic.longitude);
         const latitude = Cesium.Math.toDegrees(cartographic.latitude);
 
-        console.log(
-          `Clicked position: Lat ${latitude.toFixed(
-            6
-          )}, Lon ${longitude.toFixed(6)}`
-        );
-
-        // TODO: Query GeoServer WFS สำหรับข้อมูล feature ที่ตำแหน่งนี้
-        // TODO: แสดง popup/info window
-        this.queryFeaturesAtLocation(longitude, latitude);
+        if (this.selectionMode) {
+          // Phase 3: Selection mode - เลือกพื้นที่
+          this.selectAreaAtLocation(longitude, latitude);
+        } else {
+          // Info mode - แสดงข้อมูล
+          console.log(
+            `Clicked: Lat ${latitude.toFixed(6)}, Lon ${longitude.toFixed(6)}`
+          );
+        }
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
   }
 
-  // Query features from GeoServer WFS
-  async queryFeaturesAtLocation(longitude: number, latitude: number) {
-    console.log('TODO: Query GeoServer WFS at:', longitude, latitude);
-    // TODO: ใช้ WFS GetFeature request เพื่อ query ข้อมูล
-    // TODO: แสดงผลใน popup หรือ info panel
+  // ============================================
+  // Phase 3: Selection & Cart Functions
+  // ============================================
+  toggleSelectionMode() {
+    this.selectionMode = !this.selectionMode;
+    console.log('Selection mode:', this.selectionMode ? 'ON' : 'OFF');
   }
 
-  // Helper method สำหรับเพิ่ม WMS Layer
+  selectAreaAtLocation(longitude: number, latitude: number) {
+    // TODO: Query GeoServer WFS สำหรับ ระวาง/พื้นที่ ที่ตำแหน่งนี้
+    console.log('Selecting area at:', longitude, latitude);
+
+    // Simulate feature selection
+    const feature = {
+      id: `feature_${Date.now()}`,
+      name: `ระวาง (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`,
+      type: 'Land Parcel',
+      bounds: { lat: latitude, lon: longitude },
+    };
+
+    this.selectedFeatures.push(feature);
+    console.log('Selected features:', this.selectedFeatures);
+
+    // TODO: แสดง highlight บนแผนที่
+  }
+
+  addToCart(feature: any) {
+    const cartItem: CartItem = {
+      ...feature,
+      addedAt: new Date(),
+    };
+
+    this.cart.push(cartItem);
+    console.log('Added to cart:', cartItem);
+    console.log('Cart items:', this.cart);
+  }
+
+  addSelectedToCart() {
+    this.selectedFeatures.forEach((feature) => {
+      this.addToCart(feature);
+    });
+    this.selectedFeatures = [];
+    this.selectionMode = false;
+  }
+
+  removeFromCart(index: number) {
+    this.cart.splice(index, 1);
+  }
+
+  clearCart() {
+    this.cart = [];
+  }
+
+  toggleCart() {
+    this.showCart = !this.showCart;
+  }
+
+  // ============================================
+  // Phase 3: Watermark Functions
+  // ============================================
+  async exportWithWatermark() {
+    console.log('Exporting with watermark...');
+    console.log('Watermark settings:', this.watermarkSettings);
+
+    // TODO: จับภาพจาก Cesium viewer
+    // TODO: เพิ่มลายน้ำลงในภาพ
+    // TODO: Download file
+
+    alert('Export with watermark feature - Coming soon!');
+  }
+
+  toggleWatermark() {
+    this.watermarkSettings.enabled = !this.watermarkSettings.enabled;
+    console.log('Watermark:', this.watermarkSettings.enabled ? 'ON' : 'OFF');
+  }
+
+  // ============================================
+  // Helper Methods
+  // ============================================
   private addWMSLayer(
     url: string,
     layers: string,
@@ -262,9 +332,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     }
   }
 
-  // ============================================
-  // Layer Toggle Methods (เรียกจาก checkbox)
-  // ============================================
+  // Layer toggle methods
   toggleGoogleSatellite() {
     if (this.layers.googleSatellite) {
       this.layers.googleSatellite.show = this.layerControls.googleSatellite;
@@ -297,7 +365,6 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     }
   }
 
-  // Phase 2: Toggle methods
   toggleDEMLayer() {
     if (this.layers.demLayer) {
       this.layers.demLayer.show = this.layerControls.demLayer;

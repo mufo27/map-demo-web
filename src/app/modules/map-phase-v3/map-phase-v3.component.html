@@ -1,0 +1,261 @@
+<div class="map-wrapper">
+  <div id="cesiumContainer"></div>
+
+  <!-- Layer Control Panel -->
+  <div class="layer-control-panel" [class.collapsed]="!panelStates.layerControl">
+    <div class="panel-header" (click)="toggleLayerPanel()">
+      <h3 class="panel-title">
+        <i class="icon-layers"></i>
+        <span>Layers</span>
+      </h3>
+      <button class="toggle-button">
+        {{ panelStates.layerControl ? '−' : '+' }}
+      </button>
+    </div>
+
+    <div class="layer-controls" *ngIf="panelStates.layerControl">
+      <!-- Layers same as Phase 2 -->
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.googleSatellite"
+            (change)="toggleGoogleSatellite()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-satellite"></i>
+            Google Satellite
+          </span>
+        </label>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Phase 2: DEM & Contour -->
+      <div class="section-title">📊 Elevation Data</div>
+
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.demLayer"
+            (change)="toggleDEMLayer()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-dem"></i>
+            DEM (ความสูง)
+          </span>
+        </label>
+      </div>
+
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.contourLayer"
+            (change)="toggleContourLayer()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-contour"></i>
+            Contour (เส้นระดับ)
+          </span>
+        </label>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-title">🗺️ Boundaries</div>
+
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.provinceBoundaries"
+            (change)="toggleProvinceBoundaries()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-boundary"></i>
+            ขอบเขตจังหวัด
+          </span>
+        </label>
+      </div>
+
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.districtBoundaries"
+            (change)="toggleDistrictBoundaries()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-boundary"></i>
+            ขอบเขตอำเภอ/ตำบล
+          </span>
+        </label>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-title">🚗 Infrastructure</div>
+
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.roads"
+            (change)="toggleRoads()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-road"></i>
+            ถนน
+          </span>
+        </label>
+      </div>
+
+      <div class="layer-item">
+        <label class="layer-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="layerControls.waterways"
+            (change)="toggleWaterways()"
+            class="layer-checkbox"
+          />
+          <span class="layer-name">
+            <i class="icon-water"></i>
+            คลอง/ทางน้ำ
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3: Selection Tools Panel -->
+  <div class="tools-panel" [class.collapsed]="!panelStates.tools">
+    <div class="panel-header" (click)="toggleToolsPanel()">
+      <h4 class="tools-title">🛠️ Tools</h4>
+      <button class="toggle-button">
+        {{ panelStates.tools ? '−' : '+' }}
+      </button>
+    </div>
+
+    <div class="tools-content" *ngIf="panelStates.tools">
+
+    <button
+      class="tool-button"
+      [class.active]="selectionMode"
+      (click)="toggleSelectionMode()"
+    >
+      <i>📍</i>
+      <span>{{ selectionMode ? 'Selection ON' : 'Selection OFF' }}</span>
+    </button>
+
+    <button
+      class="tool-button"
+      (click)="addSelectedToCart()"
+      [disabled]="selectedFeatures.length === 0"
+    >
+      <i>➕</i>
+      <span>Add to Cart ({{ selectedFeatures.length }})</span>
+    </button>
+
+    <button class="tool-button" (click)="toggleCart()">
+      <i>🛒</i>
+      <span>Cart ({{ cart.length }})</span>
+    </button>
+
+    <div class="divider"></div>
+
+    <h4 class="tools-title">💧 Watermark</h4>
+
+    <label class="tool-checkbox-label">
+      <input
+        type="checkbox"
+        [(ngModel)]="watermarkSettings.enabled"
+        (change)="toggleWatermark()"
+      />
+      <span>Enable Watermark</span>
+    </label>
+
+    <div class="watermark-settings" *ngIf="watermarkSettings.enabled">
+      <label>
+        Text:
+        <input
+          type="text"
+          [(ngModel)]="watermarkSettings.text"
+          class="watermark-input"
+        />
+      </label>
+
+      <label>
+        Opacity:
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.1"
+          [(ngModel)]="watermarkSettings.opacity"
+        />
+        <span>{{ watermarkSettings.opacity }}</span>
+      </label>
+    </div>
+
+    <button class="tool-button export-button" (click)="exportWithWatermark()">
+      <i>💾</i>
+      <span>Export with Watermark</span>
+    </button>
+    </div>
+  </div>
+
+  <!-- Phase 3: Shopping Cart Panel -->
+  <div class="cart-panel" *ngIf="showCart">
+    <div class="cart-header">
+      <h3>🛒 Shopping Cart</h3>
+      <button class="close-button" (click)="toggleCart()">✕</button>
+    </div>
+
+    <div class="cart-content">
+      <div *ngIf="cart.length === 0" class="cart-empty">
+        <p>Cart is empty</p>
+        <p class="hint">Select areas on the map and add them to cart</p>
+      </div>
+
+      <div *ngIf="cart.length > 0" class="cart-items">
+        <div *ngFor="let item of cart; let i = index" class="cart-item">
+          <div class="cart-item-info">
+            <h4>{{ item.name }}</h4>
+            <p>Type: {{ item.type }}</p>
+            <small>Added: {{ item.addedAt | date : 'short' }}</small>
+          </div>
+          <button class="remove-button" (click)="removeFromCart(i)">🗑️</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cart-footer" *ngIf="cart.length > 0">
+      <button class="cart-action-button clear" (click)="clearCart()">
+        Clear Cart
+      </button>
+      <button class="cart-action-button checkout">
+        Proceed to Checkout ({{ cart.length }} items)
+      </button>
+    </div>
+  </div>
+
+  <!-- Selection Info Panel -->
+  <div class="selection-info" *ngIf="selectedFeatures.length > 0">
+    <div class="info-header">
+      <h4>Selected Areas ({{ selectedFeatures.length }})</h4>
+    </div>
+    <div class="selected-list">
+      <div *ngFor="let feature of selectedFeatures" class="selected-item">
+        {{ feature.name }}
+      </div>
+    </div>
+  </div>
+</div>

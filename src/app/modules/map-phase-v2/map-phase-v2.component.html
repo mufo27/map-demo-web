@@ -2,13 +2,18 @@
   <div id="cesiumContainer"></div>
 
   <!-- Layer Control Panel -->
-  <div class="layer-control-panel">
-    <h3 class="panel-title">
-      <i class="icon-layers"></i>
-      Layer Control (Phase 2)
-    </h3>
+  <div class="layer-control-panel" [class.collapsed]="panelCollapsed">
+    <div class="panel-header" (click)="togglePanel()">
+      <h3 class="panel-title">
+        <i class="icon-layers"></i>
+        <span>Layer Control (Phase 2)</span>
+      </h3>
+      <button class="toggle-button">
+        {{ panelCollapsed ? '+' : '−' }}
+      </button>
+    </div>
 
-    <div class="layer-controls">
+    <div class="layer-controls" *ngIf="!panelCollapsed">
       <!-- Google Maps Satellite -->
       <div class="layer-item">
         <label class="layer-label">

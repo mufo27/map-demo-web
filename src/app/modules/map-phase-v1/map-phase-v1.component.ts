@@ -33,6 +33,14 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     waterways: false,
   };
 
+  // Panel collapse state
+  panelCollapsed = false;
+
+  // Toggle panel method
+  togglePanel() {
+    this.panelCollapsed = !this.panelCollapsed;
+  }
+
   ngAfterViewInit(): void {
     (window as any).CESIUM_BASE_URL = '/assets/cesium/';
     this.initCesium();
