@@ -1,12 +1,29 @@
 import { Component, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import {
+  ModalModule,
+  ButtonModule,
+  CardModule,
+  GridModule,
+  TableModule,
+} from '@coreui/angular';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import * as Cesium from 'cesium';
 
 @Component({
   selector: 'app-map-phase-v1',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ModalModule,
+    ButtonModule,
+    CardModule,
+    GridModule,
+    TableModule,
+    AutoCompleteModule,
+  ],
   templateUrl: './map-phase-v1.component.html',
   styleUrl: './map-phase-v1.component.scss',
 })
@@ -21,6 +38,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     googleSatellite: null as Cesium.ImageryLayer | null,
     provinceBoundaries: null as Cesium.ImageryLayer | null,
     districtBoundaries: null as Cesium.ImageryLayer | null,
+    subDistrictBoundaries: null as Cesium.ImageryLayer | null,
     roads: null as Cesium.ImageryLayer | null,
     waterways: null as Cesium.ImageryLayer | null,
   };
@@ -31,6 +49,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     googleSatellite: false,
     provinceBoundaries: false,
     districtBoundaries: false,
+    subDistrictBoundaries: false,
     roads: false,
     waterways: false,
   };
@@ -39,10 +58,24 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   panelCollapsed = false;
 
   // Search feature properties
-  searchQuery = '';
-  searchResults: any[] = [];
-  showSearchResults = false;
-  private searchTimeout: any;
+  // Search feature properties
+  searchQuery: any; // Can be string or object selected
+  suggestions: any[] = [];
+  searchTimeout: any;
+
+  // Popup / Selection state
+  selectedFeature: any = null;
+  modalVisible = false;
+  private handler: Cesium.ScreenSpaceEventHandler | null = null;
+
+  // Custom Field Labels Mapping
+  fieldLabels: { [key: string]: string } = {
+    PROV_CODE: 'รหัสจังหวัด',
+    PROV_NAMT: 'ชื่อจังหวัด (TH)',
+    PROV_NAME: 'ชื่อจังหวัด (EN)',
+    Area_km2_: 'พื้นที่ (ตร.กม.)',
+    // Add more mappings as needed
+  };
 
   // Toggle panel method
   togglePanel() {
@@ -63,6 +96,8 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       geocoder: false,
       homeButton: true,
       fullscreenButton: true,
+      infoBox: false, // Disable default InfoBox
+      selectionIndicator: false, // Disable default selection indicator
     });
 
     // เรียก methods ตาม Tier architecture
@@ -70,6 +105,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     this.setupTier1_Terrain();
     this.setupTier2_Imagery();
     this.setupTier3_VectorFeatures();
+    this.setupInteraction();
 
     // Zoom to Thailand
     this.viewer.camera.flyTo({
@@ -140,18 +176,25 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
 
     const wmsUrl = `${this.geoserverUrl}/wms`;
 
-    // 1. ขอบเขตจังหวัด (Province Boundaries)
+    // 1. ขอบเขตจังหวัด
     this.layers.provinceBoundaries = this.addWMSLayer(
       wmsUrl,
       `${this.workspace}:th_province`,
       'Province Boundaries'
     );
 
-    // 2. ขอบเขตอำเภอ/ตำบล (District/Subdistrict Boundaries)
+    // 2. ขอบเขตอำเภอ
     this.layers.districtBoundaries = this.addWMSLayer(
       wmsUrl,
-      `${this.workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
-      'District/Subdistrict Boundaries'
+      `${this.workspace}:thailand-amphoe`,
+      'District Boundaries'
+    );
+
+    // 2. ตำบล
+    this.layers.subDistrictBoundaries = this.addWMSLayer(
+      wmsUrl,
+      `${this.workspace}:thailand-tambon`,
+      'SubDistrict Boundaries'
     );
 
     // 3. ถนน (Roads)
@@ -183,6 +226,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
           transparent: true,
           format: 'image/png',
           styles: '',
+          INFO_FORMAT: 'application/json', // Request JSON for feature info
         },
       });
       const layer = this.viewer.imageryLayers.addImageryProvider(provider);
@@ -225,6 +269,13 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     }
   }
 
+  toggleSubDistrictBoundaries() {
+    if (this.layers.subDistrictBoundaries) {
+      this.layers.subDistrictBoundaries.show =
+        this.layerControls.subDistrictBoundaries;
+    }
+  }
+
   toggleRoads() {
     if (this.layers.roads) {
       this.layers.roads.show = this.layerControls.roads;
@@ -240,36 +291,18 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   // ============================================
   // Search Feature Methods
   // ============================================
-  onSearchInput() {
-    // Debounce search to avoid too many requests
-    if (this.searchTimeout) {
-      clearTimeout(this.searchTimeout);
-    }
-
-    if (!this.searchQuery.trim()) {
-      this.searchResults = [];
-      this.showSearchResults = false;
+  async search(event: any) {
+    const query = event.query;
+    if (!query || query.trim().length === 0) {
+      this.suggestions = [];
       return;
     }
 
-    this.searchTimeout = setTimeout(() => {
-      this.performSearch();
-    }, 300); // 300ms debounce
-  }
-
-  async performSearch() {
-    if (!this.searchQuery.trim()) return;
-
-    this.searchResults = [];
-    this.showSearchResults = true;
-
     try {
-      // Search from GeoServer WFS
-      const results = await this.searchGeoServer(this.searchQuery);
-      this.searchResults = results;
+      this.suggestions = await this.searchGeoServer(query);
     } catch (error) {
       console.error('Search error:', error);
-      this.searchResults = [];
+      this.suggestions = [];
     }
   }
 
@@ -277,7 +310,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     const results: any[] = [];
 
     try {
-      // 1. Search Provinces (จังหวัด)
+      // 1. Search Provinces
       const provinceResults = await this.searchLayer(
         `${this.workspace}:th_province`,
         query,
@@ -287,18 +320,27 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       );
       results.push(...provinceResults);
 
-      // Search districts - Note: current schema doesn't have name fields
-      // Layer exists but may need schema update to add ADM2_TH/ADM2_EN fields
+      // 2. Search Districts
       const districtResults = await this.searchLayer(
-        `test-thailand:tha_admbndl_admALL_rtsd_itos_20220121`,
+        `${this.workspace}:thailand-amphoe`,
         query,
         'district',
-        'ADM2_TH',
-        'ADM2_EN'
+        'AMP_NAME_T',
+        'AMP_NAME_E'
       );
       results.push(...districtResults);
 
-      // Search POI (Points of Interest)
+      // 3. Search SubDistricts
+      const subDistrictResults = await this.searchLayer(
+        `${this.workspace}:thailand-tambon`,
+        query,
+        'subdistrict',
+        'T_NAME_T',
+        'T_NAME_E'
+      );
+      results.push(...subDistrictResults);
+
+      // 4. Search POI
       const poiResults = await this.searchLayer(
         `${this.workspace}:gis_osm_pois`,
         query,
@@ -307,14 +349,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         'name'
       );
       results.push(...poiResults);
-      // const poiResults = await this.searchLayer(
-      //   `${this.workspace}:poi_layer`,
-      //   query,
-      //   'poi',
-      //   'NAME_TH',
-      //   'NAME_EN'
-      // );
-      // results.push(...poiResults);
     } catch (error) {
       console.error('GeoServer search error:', error);
     }
@@ -453,7 +487,10 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     return icons[type] || '📌';
   }
 
-  selectSearchResult(result: any) {
+  selectSearchResult(event: any) {
+    const result = event.value; // PrimeNG returns object with value
+    if (!result) return;
+
     // Fly to the selected location
     this.viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(
@@ -464,16 +501,12 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       duration: 2,
     });
 
-    // Hide search results
-    this.showSearchResults = false;
-
     console.log('Flying to:', result.name, result);
   }
 
   clearSearch() {
-    this.searchQuery = '';
-    this.searchResults = [];
-    this.showSearchResults = false;
+    this.searchQuery = null;
+    this.suggestions = [];
   }
 
   ngOnDestroy(): void {
@@ -481,5 +514,85 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       clearTimeout(this.searchTimeout);
     }
     this.viewer?.destroy();
+    if (this.handler) {
+      this.handler.destroy();
+    }
+  }
+
+  // ============================================
+  // Interaction & Custom Popup
+  // ============================================
+  setupInteraction() {
+    this.handler = new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
+
+    this.handler.setInputAction(async (movement: any) => {
+      const ray = this.viewer.camera.getPickRay(movement.position);
+      if (!ray) return;
+
+      const pickedFeatures = this.viewer.imageryLayers.pickImageryLayerFeatures(
+        ray,
+        this.viewer.scene
+      );
+
+      if (!Cesium.defined(pickedFeatures)) {
+        this.selectedFeature = null;
+        return;
+      }
+
+      // Use the promise to get features (Cesium processes this asynchronously)
+      try {
+        const features = await Promise.resolve(pickedFeatures);
+
+        if (features && features.length > 0) {
+          const feature: any = features[0];
+
+          // Attempt to extract properties safely
+          let properties = feature.properties;
+          if (!properties && feature.data && feature.data.properties) {
+            properties = feature.data.properties;
+          } else if (!properties && feature.data) {
+            // Sometimes it returns raw JSON directly in 'data'
+            properties = feature.data;
+          }
+
+          this.selectedFeature = {
+            properties: properties || {},
+            name: feature.name,
+          };
+          this.modalVisible = true; // Show modal
+        } else {
+          this.selectedFeature = null;
+        }
+      } catch (error) {
+        console.error('❌ Error picking features:', error);
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+  }
+
+  handleModalChange(event: boolean) {
+    this.modalVisible = event;
+  }
+
+  getLabel(key: any): string {
+    return this.fieldLabels[String(key)] || String(key);
+  }
+
+  getDisplayItems(): { key: string; value: any; label: string }[] {
+    if (!this.selectedFeature?.properties) return [];
+
+    const entries = Object.entries(this.selectedFeature.properties).map(
+      ([key, value]) => ({
+        key,
+        value,
+        label: this.getLabel(key),
+      })
+    );
+
+    // Sort: 'Area_km2_' should be last
+    return entries.sort((a, b) => {
+      if (a.key === 'Area_km2_') return 1; // Move to end
+      if (b.key === 'Area_km2_') return -1;
+      return 0; // Keep original order for others
+    });
   }
 }
