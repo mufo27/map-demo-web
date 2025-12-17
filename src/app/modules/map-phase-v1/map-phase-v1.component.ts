@@ -59,6 +59,8 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     subDistrictBoundaries: null as Cesium.ImageryLayer | null,
     roads: null as Cesium.ImageryLayer | null,
     waterways: null as Cesium.ImageryLayer | null,
+
+    thailand: null as Cesium.ImageryLayer | null,
   };
 
   layerControls = {
@@ -69,6 +71,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     subDistrictBoundaries: false,
     roads: false,
     waterways: false,
+    thailand: false,
   };
 
   panelCollapsed = true;
@@ -205,6 +208,12 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       `${this.workspace}:gis_osm_waterways`,
       'Waterways'
     );
+
+    this.layers.thailand = this.addWMSLayer(
+      wmsUrl,
+      `${this.workspace}:thailand`,
+      'Open Street Map (Self)'
+    );
   }
 
   private addWMSLayer(
@@ -275,6 +284,12 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   toggleWaterways() {
     if (this.layers.waterways) {
       this.layers.waterways.show = this.layerControls.waterways;
+    }
+  }
+
+  toggleThailand() {
+    if (this.layers.thailand) {
+      this.layers.thailand.show = this.layerControls.thailand;
     }
   }
 
