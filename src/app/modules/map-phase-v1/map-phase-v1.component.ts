@@ -55,7 +55,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   };
 
   // Panel collapse state
-  panelCollapsed = false;
+  panelCollapsed = true; // Start collapsed to avoid overlap
 
   // Search feature properties
   // Search feature properties
@@ -70,11 +70,37 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
 
   // Custom Field Labels Mapping
   fieldLabels: { [key: string]: string } = {
-    PROV_CODE: 'รหัสจังหวัด',
-    PROV_NAMT: 'ชื่อจังหวัด (TH)',
-    PROV_NAME: 'ชื่อจังหวัด (EN)',
+    // Province fields (จังหวัด)
+    // PROV_CODE: 'รหัสจังหวัด',
+    PROV_NAMT: 'ชื่อจังหวัด (ไทย)',
+    PROV_NAME: 'ชื่อจังหวัด (อังกฤษ)',
     Area_km2_: 'พื้นที่ (ตร.กม.)',
-    // Add more mappings as needed
+
+    // District (อำเภอ) fields
+    // AMP_CODE: 'รหัสอำเภอ',
+    // PRV_CODE: 'รหัสจังหวัด',
+    AMP_NAME_T: 'ชื่ออำเภอ (ไทย)',
+    AMP_NAME_E: 'ชื่ออำเภอ (อังกฤษ)',
+
+    // Sub-district (ตำบล) fields
+    // OBJECTID: 'รหัสออบเจ็กต์',
+    // P_CODE: 'รหัสจังหวัด',
+    // A_CODE: 'รหัสอำเภอ',
+    // T_CODE: 'รหัสตำบล',
+    P_NAME_T: 'ชื่อจังหวัด (ไทย)',
+    P_NAME_E: 'ชื่อจังหวัด (อังกฤษ)',
+    A_NAME_T: 'ชื่ออำเภอ (ไทย)',
+    A_NAME_E: 'ชื่ออำเภอ (อังกฤษ)',
+    T_NAME_T: 'ชื่อตำบล (ไทย)',
+    T_NAME_E: 'ชื่อตำบล (อังกฤษ)',
+
+    // Common shape fields
+    Shape_Leng: 'ความยาวขอบเขต',
+    Shape_Area: 'พื้นที่',
+
+    // Other common fields
+    NAME: 'ชื่อ',
+    name: 'ชื่อ',
   };
 
   // Toggle panel method
@@ -472,7 +498,8 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   getTypeLabel(type: string): string {
     const labels: { [key: string]: string } = {
       province: 'จังหวัด',
-      district: 'อำเภอ/ตำบล',
+      district: 'อำเภอ',
+      subdistrict: 'ตำบล',
       poi: 'สถานที่',
     };
     return labels[type] || type;

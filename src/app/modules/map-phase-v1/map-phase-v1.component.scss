@@ -25,17 +25,16 @@
 .layer-control-panel {
   position: absolute;
   top: 20px;
-  left: 360px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  left: 440px;
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 1px 4px -1px;
   min-width: 280px;
   max-width: 320px;
   max-height: calc(100vh - 80px);
   overflow: hidden;
   z-index: 1000;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: Roboto, Arial, sans-serif;
   transition: all 0.3s ease;
 
   &.collapsed {
@@ -44,25 +43,25 @@
   }
 
   .panel-header {
-    padding: 16px;
-    border-bottom: 1px solid #e0e0e0;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e8eaed;
     display: flex;
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
     user-select: none;
-    background: rgba(255, 255, 255, 0.95);
+    background: #fff;
 
     &:hover {
-      background: rgba(0, 123, 255, 0.05);
+      background: #f8f9fa;
     }
   }
 
   .panel-title {
     margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: #2c3e50;
+    font-size: 14px;
+    font-weight: 500;
+    color: #3c4043;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -78,10 +77,10 @@
   }
 
   .toggle-button {
-    background: #007bff;
-    color: white;
+    background: transparent;
+    color: #5f6368;
     border: none;
-    border-radius: 4px;
+    border-radius: 2px;
     width: 28px;
     height: 28px;
     display: flex;
@@ -89,13 +88,12 @@
     justify-content: center;
     cursor: pointer;
     font-size: 20px;
-    font-weight: bold;
+    font-weight: normal;
     line-height: 1;
     transition: all 0.2s ease;
 
     &:hover {
-      background: #0056b3;
-      transform: scale(1.1);
+      background: #f1f3f4;
     }
   }
 
@@ -264,28 +262,28 @@
     align-items: center;
     cursor: pointer;
     padding: 8px;
-    border-radius: 4px;
+    border-radius: 2px;
     transition: background-color 0.2s ease;
 
     &:hover {
-      background-color: rgba(0, 123, 255, 0.05);
+      background-color: #f1f3f4;
     }
   }
 
   .layer-checkbox {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     cursor: pointer;
-    margin-right: 10px;
-    accent-color: #007bff;
+    margin-right: 12px;
+    accent-color: #1a73e8;
   }
 
   .layer-name {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
-    color: #34495e;
+    font-size: 13px;
+    color: #3c4043;
     user-select: none;
 
     // Icon styles
@@ -322,18 +320,20 @@
   position: absolute;
   top: 20px;
   left: 20px;
-  width: 320px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 400px;
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 1px 4px -1px;
   z-index: 1000;
+  overflow: visible;
 }
 
 .search-panel-header {
-  padding: 14px 16px;
-  font-weight: 600;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 12px 16px;
+  font-weight: 500;
+  font-size: 14px;
+  color: #3c4043;
+  border-bottom: 1px solid #e8eaed;
 }
 
 .search-panel-content {
@@ -376,9 +376,63 @@
 // }
 
 ::ng-deep .p-autocomplete-panel {
-  min-width: 440px;
-  max-width: 520px;
-  max-height: 300px;
+  min-width: 400px !important;
+  max-width: 600px !important;
+  max-height: 500px !important;
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 1px 4px -1px !important;
+  border-radius: 2px !important;
+  border: 1px solid #e8eaed !important;
+}
+
+::ng-deep .p-autocomplete-item {
+  padding: 12px 16px !important;
+  border-bottom: 1px solid #f1f3f4 !important;
+
+  &:hover {
+    background-color: #f8f9fa !important;
+  }
+}
+
+::ng-deep .search-result-item-prime {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+
+  span {
+    flex-shrink: 0;
+    font-size: 18px;
+  }
+
+  div {
+    flex: 1;
+    min-width: 0;
+
+    b {
+      color: #3c4043;
+      font-size: 14px;
+      font-weight: 500;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .type {
+      color: #5f6368;
+      font-size: 12px;
+    }
+  }
+}
+
+::ng-deep .p-autocomplete .p-autocomplete-input {
+  border: 1px solid #e8eaed !important;
+  border-radius: 2px !important;
+  padding: 10px 12px !important;
+  font-size: 14px !important;
+  font-family: Roboto, Arial, sans-serif !important;
+
+  &:focus {
+    border-color: #1a73e8 !important;
+    box-shadow: 0 0 0 1px #1a73e8 !important;
+  }
 }
 
 @media (max-width: 768px) {
@@ -393,5 +447,26 @@
     left: 10px;
     right: 10px;
     width: auto;
+  }
+}
+
+// Modal positioning - top right below home button
+::ng-deep .modal-top-right {
+  .modal-dialog {
+    position: fixed;
+    top: 70px !important; // Below the home button
+    right: 20px !important;
+    margin: 0 !important;
+    max-width: 500px;
+    width: 90%;
+
+    @media (min-width: 768px) {
+      width: 450px;
+    }
+  }
+
+  .modal-content {
+    box-shadow: rgba(0, 0, 0, 0.3) 0px 2px 8px !important;
+    border-radius: 2px !important;
   }
 }

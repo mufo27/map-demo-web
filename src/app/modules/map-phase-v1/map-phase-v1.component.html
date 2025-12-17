@@ -131,13 +131,17 @@
   </div>
 
   <!-- Modal -->
-  <c-modal [visible]="modalVisible" (visibleChange)="handleModalChange($event)" alignment="center">
+  <c-modal [visible]="modalVisible" (visibleChange)="handleModalChange($event)" alignment="top" class="modal-top-right">
     <c-modal-header>
       <h5 cModalTitle>{{
+        selectedFeature?.properties?.['PROV_NAMT'] ||
+        selectedFeature?.properties?.['AMP_NAME_T'] ||
+        selectedFeature?.properties?.['T_NAME_T'] ||
+        selectedFeature?.properties?.['P_NAME_T'] ||
         selectedFeature?.properties?.['PROV_NAME'] ||
         selectedFeature?.properties?.['NAME'] ||
         selectedFeature?.name ||
-        'Details'
+        'รายละเอียด'
         }}</h5>
       <button (click)="handleModalChange(false)" cButtonClose></button>
     </c-modal-header>
