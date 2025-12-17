@@ -1,19 +1,14 @@
 <div class="map-wrapper">
   <div id="cesiumContainer"></div>
 
-  <!-- ===== Search Panel ===== -->
   <div class="search-panel">
-    <div class="search-panel-header">
-      Search
-    </div>
-
     <div class="search-panel-content">
       <p-autoComplete [(ngModel)]="searchQuery" [suggestions]="suggestions" (completeMethod)="search($event)"
-        (onSelect)="selectSearchResult($event)" field="name" placeholder="" [style]="{ width: '100%' }"
+        (onSelect)="selectSearchResult($event)" field="name" placeholder="Search" [style]="{ width: '100%' }"
         [inputStyle]="{ width: '100%' }">
         <ng-template let-result pTemplate="item">
           <div class="search-result-item-prime">
-            <span>{{ result.icon }}</span>
+            <svg cIcon [name]="result.icon" size="lg"></svg>
             <div>
               <b>{{ result.name }}</b>
               <div class="type">{{ result.typeLabel }}</div>
@@ -25,7 +20,6 @@
   </div>
 
 
-  <!-- Layer Control Panel -->
   <div class="layer-control-panel" [class.collapsed]="panelCollapsed">
     <div class="panel-header" (click)="togglePanel()">
       <h3 class="panel-title">
@@ -38,11 +32,7 @@
     </div>
 
     <div class="panel-content" *ngIf="!panelCollapsed">
-
-
-      <!-- Layer Controls Section -->
       <div class="layer-controls">
-        <!-- OpenStreetMap -->
         <div class="layer-item">
           <label class="layer-label">
             <input type="checkbox" [(ngModel)]="layerControls.openStreetMap" (change)="toggleOpenStreetMap()"
@@ -54,7 +44,6 @@
           </label>
         </div>
 
-        <!-- Google Maps Satellite -->
         <div class="layer-item">
           <label class="layer-label">
             <input type="checkbox" [(ngModel)]="layerControls.googleSatellite" (change)="toggleGoogleSatellite()"
@@ -68,7 +57,6 @@
 
         <div class="divider"></div>
 
-        <!-- Province Boundaries -->
         <div class="layer-item">
           <label class="layer-label">
             <input type="checkbox" [(ngModel)]="layerControls.provinceBoundaries" (change)="toggleProvinceBoundaries()"
@@ -80,7 +68,6 @@
           </label>
         </div>
 
-        <!-- District Boundaries -->
         <div class="layer-item">
           <label class="layer-label">
             <input type="checkbox" [(ngModel)]="layerControls.districtBoundaries" (change)="toggleDistrictBoundaries()"
@@ -92,7 +79,6 @@
           </label>
         </div>
 
-        <!-- Sub District Boundaries -->
         <div class="layer-item">
           <label class="layer-label">
             <input type="checkbox" [(ngModel)]="layerControls.subDistrictBoundaries"
@@ -104,7 +90,6 @@
           </label>
         </div>
 
-        <!-- Roads -->
         <div class="layer-item">
           <label class="layer-label">
             <input type="checkbox" [(ngModel)]="layerControls.roads" (change)="toggleRoads()" class="layer-checkbox" />
@@ -115,7 +100,6 @@
           </label>
         </div>
 
-        <!-- Waterways -->
         <div class="layer-item">
           <label class="layer-label">
             <input type="checkbox" [(ngModel)]="layerControls.waterways" (change)="toggleWaterways()"
@@ -130,7 +114,6 @@
     </div>
   </div>
 
-  <!-- Modal -->
   <c-modal [visible]="modalVisible" (visibleChange)="handleModalChange($event)" alignment="top" class="modal-top-right">
     <c-modal-header>
       <h5 cModalTitle>{{

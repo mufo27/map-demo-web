@@ -8,6 +8,14 @@ import {
   GridModule,
   TableModule,
 } from '@coreui/angular';
+import { IconModule, IconSetService } from '@coreui/icons-angular';
+import {
+  cilMap,
+  cilLocationPin,
+  cilPin,
+  cilBuilding,
+  cilCursor,
+} from '@coreui/icons';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import * as Cesium from 'cesium';
 
@@ -23,6 +31,7 @@ import * as Cesium from 'cesium';
     GridModule,
     TableModule,
     AutoCompleteModule,
+    IconModule,
   ],
   templateUrl: './map-phase-v1.component.html',
   styleUrl: './map-phase-v1.component.scss',
@@ -32,7 +41,16 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   private geoserverUrl = 'http://192.168.88.217:6080/geoserver';
   private workspace = 'thailand-demo';
 
-  // Layer references for toggling
+  constructor(private iconSetService: IconSetService) {
+    this.iconSetService.icons = {
+      cilMap,
+      cilLocationPin,
+      cilPin,
+      cilBuilding,
+      cilCursor,
+    };
+  }
+
   private layers = {
     openStreetMap: null as Cesium.ImageryLayer | null,
     googleSatellite: null as Cesium.ImageryLayer | null,
@@ -43,7 +61,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     waterways: null as Cesium.ImageryLayer | null,
   };
 
-  // Layer visibility states (bound to checkboxes)
   layerControls = {
     openStreetMap: false,
     googleSatellite: false,
@@ -54,56 +71,34 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     waterways: false,
   };
 
-  // Panel collapse state
-  panelCollapsed = true; // Start collapsed to avoid overlap
+  panelCollapsed = true;
 
-  // Search feature properties
-  // Search feature properties
-  searchQuery: any; // Can be string or object selected
+  searchQuery: any;
   suggestions: any[] = [];
   searchTimeout: any;
 
-  // Popup / Selection state
   selectedFeature: any = null;
   modalVisible = false;
   private handler: Cesium.ScreenSpaceEventHandler | null = null;
 
-  // Custom Field Labels Mapping
   fieldLabels: { [key: string]: string } = {
-    // Province fields (จังหวัด)
-    // PROV_CODE: 'รหัสจังหวัด',
     PROV_NAMT: 'ชื่อจังหวัด (ไทย)',
     PROV_NAME: 'ชื่อจังหวัด (อังกฤษ)',
     Area_km2_: 'พื้นที่ (ตร.กม.)',
-
-    // District (อำเภอ) fields
-    // AMP_CODE: 'รหัสอำเภอ',
-    // PRV_CODE: 'รหัสจังหวัด',
     AMP_NAME_T: 'ชื่ออำเภอ (ไทย)',
     AMP_NAME_E: 'ชื่ออำเภอ (อังกฤษ)',
-
-    // Sub-district (ตำบล) fields
-    // OBJECTID: 'รหัสออบเจ็กต์',
-    // P_CODE: 'รหัสจังหวัด',
-    // A_CODE: 'รหัสอำเภอ',
-    // T_CODE: 'รหัสตำบล',
     P_NAME_T: 'ชื่อจังหวัด (ไทย)',
     P_NAME_E: 'ชื่อจังหวัด (อังกฤษ)',
     A_NAME_T: 'ชื่ออำเภอ (ไทย)',
     A_NAME_E: 'ชื่ออำเภอ (อังกฤษ)',
     T_NAME_T: 'ชื่อตำบล (ไทย)',
     T_NAME_E: 'ชื่อตำบล (อังกฤษ)',
-
-    // Common shape fields
     Shape_Leng: 'ความยาวขอบเขต',
     Shape_Area: 'พื้นที่',
-
-    // Other common fields
     NAME: 'ชื่อ',
     name: 'ชื่อ',
   };
 
-  // Toggle panel method
   togglePanel() {
     this.panelCollapsed = !this.panelCollapsed;
   }
@@ -122,49 +117,33 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       geocoder: false,
       homeButton: true,
       fullscreenButton: true,
-      infoBox: false, // Disable default InfoBox
-      selectionIndicator: false, // Disable default selection indicator
+      infoBox: false,
+      selectionIndicator: false,
     });
 
-    // เรียก methods ตาม Tier architecture
     this.setupTier0_Globe();
     this.setupTier1_Terrain();
     this.setupTier2_Imagery();
     this.setupTier3_VectorFeatures();
     this.setupInteraction();
 
-    // Zoom to Thailand
     this.viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(100.5018, 13.7563, 2000000),
     });
   }
 
-  // ============================================
-  // TIER 0: Globe (Ellipsoid) - Base Layer
-  // ============================================
   setupTier0_Globe() {
-    // Cesium ใช้ Ellipsoid โดย default
     console.log('✓ Tier 0: Globe (Ellipsoid) initialized');
   }
 
-  // ============================================
-  // TIER 1: Terrain (DEM - ความสูง)
-  // ============================================
   setupTier1_Terrain() {
-    // ใช้ Ellipsoid Terrain (ไม่มีความสูง) สำหรับ Phase 1
-    // Phase 2 จะเปลี่ยนเป็น DEM จริง
     this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
     console.log('✓ Tier 1: Terrain (Ellipsoid) initialized');
   }
 
-  // ============================================
-  // TIER 2: Imagery (Orthophoto, แผนที่)
-  // ============================================
   setupTier2_Imagery() {
-    // ใช้ Cesium default base map (Bing Maps)
     console.log('✓ Tier 2: Using Cesium default base map (Bing Maps)');
 
-    // 1. Optional: OpenStreetMap
     try {
       const provider = new Cesium.OpenStreetMapImageryProvider({
         url: 'https://a.tile.openstreetmap.org/',
@@ -177,7 +156,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       console.error('✗ Error loading OSM:', error);
     }
 
-    // 2. Optional: Google Maps Satellite
     try {
       const provider = new Cesium.UrlTemplateImageryProvider({
         url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
@@ -185,7 +163,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       });
       this.layers.googleSatellite =
         this.viewer.imageryLayers.addImageryProvider(provider);
-      // ซ่อนไว้ตามค่า checkbox (false)
       this.layers.googleSatellite.show = this.layerControls.googleSatellite;
       console.log('✓ Tier 2: Google Maps Satellite loaded');
     } catch (error) {
@@ -193,44 +170,36 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     }
   }
 
-  // ============================================
-  // TIER 3: Vector/Features (ถนน, ขอบเขต, POI)
-  // ============================================
   setupTier3_VectorFeatures() {
-    // สำหรับ Phase 1 ใช้ WMS (Imagery) ก่อน
-    // Phase 2 จะเปลี่ยนเป็น WFS (Vector) เพื่อให้คลิกและ query ได้
+    console.log(
+      '⚠️ Tier 3: Using WMS (Phase 1) - Should migrate to WFS in Phase 2'
+    );
 
     const wmsUrl = `${this.geoserverUrl}/wms`;
-
-    // 1. ขอบเขตจังหวัด
     this.layers.provinceBoundaries = this.addWMSLayer(
       wmsUrl,
       `${this.workspace}:th_province`,
       'Province Boundaries'
     );
 
-    // 2. ขอบเขตอำเภอ
     this.layers.districtBoundaries = this.addWMSLayer(
       wmsUrl,
       `${this.workspace}:thailand-amphoe`,
       'District Boundaries'
     );
 
-    // 2. ตำบล
     this.layers.subDistrictBoundaries = this.addWMSLayer(
       wmsUrl,
       `${this.workspace}:thailand-tambon`,
       'SubDistrict Boundaries'
     );
 
-    // 3. ถนน (Roads)
     this.layers.roads = this.addWMSLayer(
       wmsUrl,
       `${this.workspace}:gis_osm_roads`,
       'Roads'
     );
 
-    // 4. คลอง/ทางน้ำ (Waterways)
     this.layers.waterways = this.addWMSLayer(
       wmsUrl,
       `${this.workspace}:gis_osm_waterways`,
@@ -238,7 +207,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     );
   }
 
-  // Helper method สำหรับเพิ่ม WMS Layer
   private addWMSLayer(
     url: string,
     layers: string,
@@ -252,11 +220,10 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
           transparent: true,
           format: 'image/png',
           styles: '',
-          INFO_FORMAT: 'application/json', // Request JSON for feature info
+          INFO_FORMAT: 'application/json',
         },
       });
       const layer = this.viewer.imageryLayers.addImageryProvider(provider);
-      // ซ่อนไว้ทุก layer ให้เลือกจาก checkbox เท่านั้น
       layer.show = false;
       console.log(`✓ Tier 3: ${name} loaded (WMS)`);
       return layer;
@@ -266,9 +233,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     }
   }
 
-  // ============================================
-  // Layer Toggle Methods (เรียกจาก checkbox)
-  // ============================================
   toggleOpenStreetMap() {
     if (this.layers.openStreetMap) {
       this.layers.openStreetMap.show = this.layerControls.openStreetMap;
@@ -314,9 +278,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     }
   }
 
-  // ============================================
-  // Search Feature Methods
-  // ============================================
   async search(event: any) {
     const query = event.query;
     if (!query || query.trim().length === 0) {
@@ -336,7 +297,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     const results: any[] = [];
 
     try {
-      // 1. Search Provinces
       const provinceResults = await this.searchLayer(
         `${this.workspace}:th_province`,
         query,
@@ -346,7 +306,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       );
       results.push(...provinceResults);
 
-      // 2. Search Districts
       const districtResults = await this.searchLayer(
         `${this.workspace}:thailand-amphoe`,
         query,
@@ -356,7 +315,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       );
       results.push(...districtResults);
 
-      // 3. Search SubDistricts
       const subDistrictResults = await this.searchLayer(
         `${this.workspace}:thailand-tambon`,
         query,
@@ -366,7 +324,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       );
       results.push(...subDistrictResults);
 
-      // 4. Search POI
       const poiResults = await this.searchLayer(
         `${this.workspace}:gis_osm_pois`,
         query,
@@ -379,7 +336,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       console.error('GeoServer search error:', error);
     }
 
-    return results.slice(0, 10); // Limit to 10 results
+    return results.slice(0, 10);
   }
 
   async searchLayer(
@@ -391,8 +348,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   ): Promise<any[]> {
     try {
       const wfsUrl = `${this.geoserverUrl}/wfs`;
-
-      // Build CQL_FILTER for Thai and English search
       const filter = `${thField} LIKE '%${query}%' OR ${enField} LIKE '%${query}%'`;
 
       const params = new URLSearchParams({
@@ -403,7 +358,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         outputFormat: 'application/json',
         CQL_FILTER: filter,
         maxFeatures: '5',
-        srsName: 'EPSG:4326', // Request coordinates in WGS84 (lat/lon)
+        srsName: 'EPSG:4326',
       });
 
       const fullUrl = `${wfsUrl}?${params.toString()}`;
@@ -434,22 +389,17 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
 
       console.log(`✅ Found ${data.features.length} features`);
 
-      // Parse and format results
       return data.features.map((feature: any) => {
         const props = feature.properties;
         const geometry = feature.geometry;
 
         console.log('📄 Feature properties:', props);
-
-        // Calculate center point from geometry
         let longitude = 0;
         let latitude = 0;
-        let height = 50000; // Default zoom height
-
+        let height = 50000;
         if (geometry.type === 'Point') {
           [longitude, latitude] = geometry.coordinates;
         } else if (geometry.type === 'Polygon') {
-          // Calculate centroid of polygon
           const coords = geometry.coordinates[0];
           longitude =
             coords.reduce((sum: number, c: any) => sum + c[0], 0) /
@@ -459,7 +409,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             coords.length;
           height = type === 'province' ? 200000 : 100000;
         } else if (geometry.type === 'MultiPolygon') {
-          // Calculate centroid of first polygon
           const coords = geometry.coordinates[0][0];
           longitude =
             coords.reduce((sum: number, c: any) => sum + c[0], 0) /
@@ -469,8 +418,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             coords.length;
           height = type === 'province' ? 200000 : 100000;
         }
-
-        // Get name (prefer Thai, fallback to English)
         const nameTh = props[thField] || '';
         const nameEn = props[enField] || '';
         const displayName = nameTh || nameEn;
@@ -507,18 +454,18 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
 
   getTypeIcon(type: string): string {
     const icons: { [key: string]: string } = {
-      province: '🗺️',
-      district: '📍',
-      poi: '🏢',
+      province: 'cil-map',
+      district: 'cil-location-pin',
+      subdistrict: 'cil-pin',
+      poi: 'cil-building',
     };
-    return icons[type] || '📌';
+    return icons[type] || 'cil-cursor';
   }
 
   selectSearchResult(event: any) {
-    const result = event.value; // PrimeNG returns object with value
+    const result = event.value;
     if (!result) return;
 
-    // Fly to the selected location
     this.viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(
         result.longitude,
@@ -546,9 +493,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     }
   }
 
-  // ============================================
-  // Interaction & Custom Popup
-  // ============================================
   setupInteraction() {
     this.handler = new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
 
@@ -566,19 +510,16 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         return;
       }
 
-      // Use the promise to get features (Cesium processes this asynchronously)
       try {
         const features = await Promise.resolve(pickedFeatures);
 
         if (features && features.length > 0) {
           const feature: any = features[0];
 
-          // Attempt to extract properties safely
           let properties = feature.properties;
           if (!properties && feature.data && feature.data.properties) {
             properties = feature.data.properties;
           } else if (!properties && feature.data) {
-            // Sometimes it returns raw JSON directly in 'data'
             properties = feature.data;
           }
 
@@ -586,7 +527,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             properties: properties || {},
             name: feature.name,
           };
-          this.modalVisible = true; // Show modal
+          this.modalVisible = true;
         } else {
           this.selectedFeature = null;
         }
@@ -614,12 +555,10 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         label: this.getLabel(key),
       })
     );
-
-    // Sort: 'Area_km2_' should be last
     return entries.sort((a, b) => {
-      if (a.key === 'Area_km2_') return 1; // Move to end
+      if (a.key === 'Area_km2_') return 1;
       if (b.key === 'Area_km2_') return -1;
-      return 0; // Keep original order for others
+      return 0;
     });
   }
 }
