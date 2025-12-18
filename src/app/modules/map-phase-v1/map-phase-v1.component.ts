@@ -88,15 +88,15 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     private pinEntity: Cesium.Entity | null = null;
     private cameraChangeListener: any = null;
     private lastCameraHeight: number = 0;
+    currentCameraHeight: number = 2000000; // Default start height
 
-    // Zoom level thresholds (in meters)
+    // Zoom level thresholds (in meters) - Aligned with Google Maps
     private zoomLevels = {
-        veryFar: 1000000, // >1,000 km - Globe + Imagery only
-        far: 500000, // 500-1000 km - + Province boundaries
-        medium: 100000, // 100-500 km - + District boundaries + Roads + Waterways
-        close: 50000, // 50-100 km - + SubDistrict boundaries
-        veryClose: 20000, // 20-50 km - + POI
-        extreme: 10000, // <10 km - + Buildings + OSM Self
+        country: 300000, // 300 km - Province level (Zoom 5-7)
+        region: 75000, // 75 km - District level (Zoom 8-10)
+        city: 10000, // 10 km - Sub-district level (Zoom 11-13)
+        neighborhood: 2500, // 2.5 km - POI level (Zoom 16+)
+        street: 1000, // 1 km - Building level (Zoom 18+)
     };
 
     fieldLabels: { [key: string]: string } = {
@@ -168,6 +168,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     setupCameraListener() {
         this.cameraChangeListener = this.viewer.camera.changed.addEventListener(() => {
             const cameraHeight = this.viewer.camera.positionCartographic.height;
+            this.currentCameraHeight = cameraHeight;
 
             // Only update if height changed significantly (>10% change or >10km)
             const heightDiff = Math.abs(cameraHeight - this.lastCameraHeight);
@@ -180,45 +181,57 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     }
 
     updateLayerVisibilityByZoom(cameraHeight: number) {
-        // Only update layers that are enabled via tier controls
-        // If user manually disabled a layer, respect that
+        // Google Maps aligned zoom levels:
+        // Province: > 300km (Zoom 5-7)
+        // District: 75-300km (Zoom 8-10)
+        // Sub-district: 10-75km (Zoom 11-13)
+        // Roads/Waterways: < 10km (Zoom 14+)
+        // POIs: < 2.5km (Zoom 16+)
+        // Buildings/OSM: < 1km (Zoom 18+)
 
-        // Province boundaries: Show when < 1,000 km
-        if (this.tierControls.tier3 && this.layers.provinceBoundaries) {
-            this.layers.provinceBoundaries.show = cameraHeight < this.zoomLevels.veryFar;
+        const showProvince = cameraHeight > this.zoomLevels.country;
+        const showDistrict = cameraHeight <= this.zoomLevels.country && cameraHeight > this.zoomLevels.region;
+        const showSubDistrict = cameraHeight <= this.zoomLevels.region && cameraHeight > this.zoomLevels.city;
+
+        // Province: Show at country level (>300km) AND when checkbox enabled
+        if (this.layers.provinceBoundaries) {
+            this.layers.provinceBoundaries.show = showProvince && this.layerControls.provinceBoundaries;
         }
 
-        // District boundaries: Show when < 500 km
-        if (this.tierControls.tier3 && this.layers.districtBoundaries) {
-            this.layers.districtBoundaries.show = cameraHeight < this.zoomLevels.far;
+        // District: Show at region level (75-300km) AND when checkbox enabled
+        if (this.layers.districtBoundaries) {
+            this.layers.districtBoundaries.show = showDistrict && this.layerControls.districtBoundaries;
         }
 
-        // Roads and Waterways: Show when < 100 km
-        if (this.tierControls.tier3 && this.layers.roads) {
-            this.layers.roads.show = cameraHeight < this.zoomLevels.medium;
-        }
-        if (this.tierControls.tier3 && this.layers.waterways) {
-            this.layers.waterways.show = cameraHeight < this.zoomLevels.medium;
+        // Sub-district: Show at city level (10-75km) AND when checkbox enabled
+        if (this.layers.subDistrictBoundaries) {
+            this.layers.subDistrictBoundaries.show = showSubDistrict && this.layerControls.subDistrictBoundaries;
         }
 
-        // SubDistrict boundaries: Show when < 50 km
-        if (this.tierControls.tier3 && this.layers.subDistrictBoundaries) {
-            this.layers.subDistrictBoundaries.show = cameraHeight < this.zoomLevels.close;
+        // Other layers respect tier controls AND user checkboxes
+        if (this.tierControls.tier3) {
+            // Roads and Waterways: Show when < 10 km (Zoom 14+)
+            if (this.layers.roads) {
+                this.layers.roads.show = cameraHeight < this.zoomLevels.city && this.layerControls.roads;
+            }
+            if (this.layers.waterways) {
+                this.layers.waterways.show = cameraHeight < this.zoomLevels.city && this.layerControls.waterways;
+            }
+
+            // POI: Show when < 2.5 km (Zoom 16+)
+            if (this.layers.pois) {
+                this.layers.pois.show = cameraHeight < this.zoomLevels.neighborhood && this.layerControls.pois;
+            }
+
+            // OSM Self: Show when < 1 km (Zoom 18+)
+            if (this.layers.openStreetMapSelf) {
+                this.layers.openStreetMapSelf.show = cameraHeight < this.zoomLevels.street && this.layerControls.openStreetMapSelf;
+            }
         }
 
-        // POI: Show when < 20 km
-        if (this.tierControls.tier3 && this.layers.pois) {
-            this.layers.pois.show = cameraHeight < this.zoomLevels.veryClose;
-        }
-
-        // Buildings: Show when < 10 km
+        // Buildings: Show when < 1 km (Zoom 18+)
         if (this.tierControls.tier4 && this.layers.buildings) {
-            this.layers.buildings.show = cameraHeight < this.zoomLevels.extreme;
-        }
-
-        // OSM Self: Show when < 10 km (high detail)
-        if (this.tierControls.tier3 && this.layers.openStreetMapSelf) {
-            this.layers.openStreetMapSelf.show = cameraHeight < this.zoomLevels.extreme;
+            this.layers.buildings.show = cameraHeight < this.zoomLevels.street && this.layerControls.buildings;
         }
 
         console.log(`📏 Zoom updated: ${(cameraHeight / 1000).toFixed(1)} km`);
@@ -312,52 +325,37 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         }
     }
 
+    // Toggle methods now delegate to zoom update logic
     toggleProvinceBoundaries() {
-        if (this.layers.provinceBoundaries) {
-            this.layers.provinceBoundaries.show = this.layerControls.provinceBoundaries;
-        }
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     toggleDistrictBoundaries() {
-        if (this.layers.districtBoundaries) {
-            this.layers.districtBoundaries.show = this.layerControls.districtBoundaries;
-        }
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     toggleSubDistrictBoundaries() {
-        if (this.layers.subDistrictBoundaries) {
-            this.layers.subDistrictBoundaries.show = this.layerControls.subDistrictBoundaries;
-        }
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     toggleRoads() {
-        if (this.layers.roads) {
-            this.layers.roads.show = this.layerControls.roads;
-        }
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     toggleWaterways() {
-        if (this.layers.waterways) {
-            this.layers.waterways.show = this.layerControls.waterways;
-        }
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     togglePOIs() {
-        if (this.layers.pois) {
-            this.layers.pois.show = this.layerControls.pois;
-        }
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     toggleOpenStreetMapSelf() {
-        if (this.layers.openStreetMapSelf) {
-            this.layers.openStreetMapSelf.show = this.layerControls.openStreetMapSelf;
-        }
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     toggleBuildings() {
-        if (this.layers.buildings) {
-            this.layers.buildings.show = this.layerControls.buildings;
-        }
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     // Tier 0: Toggle Globe visibility
