@@ -1,531 +1,568 @@
 import { Component, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ModalModule, ButtonModule, CardModule, GridModule, TableModule } from '@coreui/angular';
+import { IconModule, IconSetService } from '@coreui/icons-angular';
+import { cilMap, cilLocationPin, cilPin, cilBuilding, cilCursor } from '@coreui/icons';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import * as Cesium from 'cesium';
 
 @Component({
-  selector: 'app-map-phase-v2',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './map-phase-v2.component.html',
-  styleUrl: './map-phase-v2.component.scss',
+    selector: 'app-map-phase-v2',
+    standalone: true,
+    imports: [CommonModule, FormsModule, ModalModule, ButtonModule, CardModule, GridModule, TableModule, AutoCompleteModule, IconModule],
+    templateUrl: './map-phase-v2.component.html',
+    styleUrl: './map-phase-v2.component.scss',
 })
 export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
-  viewer!: Cesium.Viewer;
-  private geoserverUrl = 'http://192.168.88.217:6080/geoserver';
-  private workspace = 'thailand-demo';
+    viewer!: Cesium.Viewer;
+    private geoserverUrl = 'http://192.168.88.217:6080/geoserver';
+    private workspace = 'thailand-demo';
 
-  // Layer references for toggling
-  private layers = {
-    openStreetMap: null as Cesium.ImageryLayer | null,
-    googleSatellite: null as Cesium.ImageryLayer | null,
-    provinceBoundaries: null as Cesium.ImageryLayer | null,
-    districtBoundaries: null as Cesium.ImageryLayer | null,
-    roads: null as Cesium.ImageryLayer | null,
-    waterways: null as Cesium.ImageryLayer | null,
-    // Phase 2: เพิ่ม DEM และ Contour
-    dem: null as Cesium.ImageryLayer | null,
-    contour: null as Cesium.ImageryLayer | null,
-  };
-
-  // Layer visibility states (bound to checkboxes)
-  layerControls = {
-    openStreetMap: false,
-    googleSatellite: false,
-    provinceBoundaries: false,
-    districtBoundaries: false,
-    roads: false,
-    waterways: false,
-    // Phase 2
-    dem: false,
-    contour: false,
-  };
-
-  // Panel collapse state
-  panelCollapsed = false;
-
-  // Search feature properties
-  searchQuery = '';
-  searchResults: any[] = [];
-  showSearchResults = false;
-  private searchTimeout: any;
-
-  // Toggle panel method
-  togglePanel() {
-    this.panelCollapsed = !this.panelCollapsed;
-  }
-
-  ngAfterViewInit(): void {
-    (window as any).CESIUM_BASE_URL = '/assets/cesium/';
-    this.initCesium();
-  }
-
-  initCesium() {
-    this.viewer = new Cesium.Viewer('cesiumContainer', {
-      timeline: false,
-      animation: false,
-      baseLayerPicker: false,
-      sceneModePicker: false,
-      geocoder: false,
-      homeButton: true,
-      fullscreenButton: true,
-    });
-
-    // เรียก methods ตาม Tier architecture
-    this.setupTier0_Globe();
-    this.setupTier1_Terrain();
-    this.setupTier2_Imagery();
-    this.setupTier3_VectorFeatures();
-
-    // Phase 2: เพิ่ม click event handler
-    this.setupMapClickHandler();
-
-    // Zoom to Thailand
-    this.viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(100.5018, 13.7563, 2000000),
-    });
-  }
-
-  // ============================================
-  // TIER 0: Globe (Ellipsoid) - Base Layer
-  // ============================================
-  setupTier0_Globe() {
-    // Cesium ใช้ Ellipsoid โดย default
-    console.log('✓ Tier 0: Globe (Ellipsoid) initialized');
-  }
-
-  // ============================================
-  // TIER 1: Terrain (DEM - ความสูง)
-  // ============================================
-  setupTier1_Terrain() {
-    // Phase 2: ใช้ DEM terrain จริง (ถ้ามี)
-    // สำหรับตอนนี้ยังใช้ Ellipsoid ไปก่อน
-    this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
-    console.log('✓ Tier 1: Terrain (Ellipsoid) initialized');
-    // TODO: เปลี่ยนเป็น DEM terrain จาก GeoServer
-  }
-
-  // ============================================
-  // TIER 2: Imagery (Orthophoto, แผนที่)
-  // ============================================
-  setupTier2_Imagery() {
-    // ใช้ Cesium default base map (Bing Maps)
-    console.log('✓ Tier 2: Using Cesium default base map (Bing Maps)');
-
-    // Optional: OpenStreetMap (เป็น overlay)
-    try {
-      const provider = new Cesium.OpenStreetMapImageryProvider({
-        url: 'https://a.tile.openstreetmap.org/',
-      });
-      this.layers.openStreetMap =
-        this.viewer.imageryLayers.addImageryProvider(provider);
-      this.layers.openStreetMap.show = this.layerControls.openStreetMap;
-      console.log('✓ Tier 2: OpenStreetMap loaded (optional)');
-    } catch (error) {
-      console.error('✗ Error loading OSM:', error);
+    constructor(private iconSetService: IconSetService) {
+        this.iconSetService.icons = {
+            cilMap,
+            cilLocationPin,
+            cilPin,
+            cilBuilding,
+            cilCursor,
+        };
     }
 
-    // 2. Optional: Google Maps Satellite ภาพถ่ายดาวเทียม นำมาแสดงพื้นหลัง
-    try {
-      const provider = new Cesium.UrlTemplateImageryProvider({
-        url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-        credit: 'Google Maps Satellite',
-      });
-      this.layers.googleSatellite =
-        this.viewer.imageryLayers.addImageryProvider(provider);
-      this.layers.googleSatellite.show = this.layerControls.googleSatellite;
-      console.log('✓ Tier 2: Google Maps Satellite loaded');
-    } catch (error) {
-      console.error('✗ Error loading Google Maps:', error);
+    private layers = {
+        openStreetMap: null as Cesium.ImageryLayer | null,
+        googleSatellite: null as Cesium.ImageryLayer | null,
+        provinceBoundaries: null as Cesium.ImageryLayer | null,
+        districtBoundaries: null as Cesium.ImageryLayer | null,
+        subDistrictBoundaries: null as Cesium.ImageryLayer | null,
+        roads: null as Cesium.ImageryLayer | null,
+        waterways: null as Cesium.ImageryLayer | null,
+        pois: null as Cesium.ImageryLayer | null,
+
+        thailand: null as Cesium.ImageryLayer | null,
+    };
+
+    layerControls = {
+        openStreetMap: false,
+        googleSatellite: false,
+        provinceBoundaries: false,
+        districtBoundaries: false,
+        subDistrictBoundaries: false,
+        roads: false,
+        waterways: false,
+        pois: false,
+        thailand: false,
+    };
+
+    panelCollapsed = true;
+
+    searchQuery: any;
+    suggestions: any[] = [];
+    searchTimeout: any;
+
+    selectedFeature: any = null;
+    modalVisible = false;
+    private handler: Cesium.ScreenSpaceEventHandler | null = null;
+    private pinEntity: Cesium.Entity | null = null;
+
+    fieldLabels: { [key: string]: string } = {
+        PROV_NAMT: 'ชื่อจังหวัด (ไทย)',
+        PROV_NAME: 'ชื่อจังหวัด (อังกฤษ)',
+        Area_km2_: 'พื้นที่ (ตร.กม.)',
+        AMP_NAME_T: 'ชื่ออำเภอ (ไทย)',
+        AMP_NAME_E: 'ชื่ออำเภอ (อังกฤษ)',
+        P_NAME_T: 'ชื่อจังหวัด (ไทย)',
+        P_NAME_E: 'ชื่อจังหวัด (อังกฤษ)',
+        A_NAME_T: 'ชื่ออำเภอ (ไทย)',
+        A_NAME_E: 'ชื่ออำเภอ (อังกฤษ)',
+        T_NAME_T: 'ชื่อตำบล (ไทย)',
+        T_NAME_E: 'ชื่อตำบล (อังกฤษ)',
+        Shape_Leng: 'ความยาวขอบเขต',
+        Shape_Area: 'พื้นที่',
+        NAME: 'ชื่อ',
+        name: 'ชื่อ',
+    };
+
+    togglePanel() {
+        this.panelCollapsed = !this.panelCollapsed;
     }
 
-    // Phase 2: เพิ่ม DEM และ Contour layers
-    this.addDEMAndContourLayers();
-  }
-
-  // ============================================
-  // TIER 3: Vector/Features (ถนน, ขอบเขต, POI)
-  // ============================================
-  setupTier3_VectorFeatures() {
-    const wmsUrl = `${this.geoserverUrl}/wms`;
-
-    // 1. ขอบเขตจังหวัด (Province Boundaries)
-    this.layers.provinceBoundaries = this.addWMSLayer(
-      wmsUrl,
-      `${this.workspace}:th_province`,
-      'Province Boundaries'
-    );
-
-    // 2. ขอบเขตอำเภอ/ตำบล (District/Subdistrict Boundaries)
-    this.layers.districtBoundaries = this.addWMSLayer(
-      wmsUrl,
-      `${this.workspace}:tha_admbndl_admALL_rtsd_itos_20220121`,
-      'District/Subdistrict Boundaries'
-    );
-
-    // 3. ถนน (Roads)
-    this.layers.roads = this.addWMSLayer(
-      wmsUrl,
-      `${this.workspace}:gis_osm_roads`,
-      'Roads'
-    );
-
-    // 4. คลอง/ทางน้ำ (Waterways)
-    this.layers.waterways = this.addWMSLayer(
-      wmsUrl,
-      `${this.workspace}:gis_osm_waterways`,
-      'Waterways'
-    );
-  }
-
-  // ============================================
-  // PHASE 2: DEM และ Contour Layers
-  // ============================================
-  addDEMAndContourLayers() {
-    const wmsUrl = `${this.geoserverUrl}/wms`;
-
-    // DEM Layer (ถ้ามีใน GeoServer)
-    // TODO: แก้ layer name ให้ตรงกับ GeoServer
-    // this.layers.demLayer = this.addWMSLayer(
-    //   wmsUrl,
-    //   `${this.workspace}:dem_layer`,
-    //   'DEM Layer'
-    // );
-
-    // Contour Layer (ถ้ามีใน GeoServer)
-    // TODO: แก้ layer name ให้ตรงกับ GeoServer
-    // this.layers.contourLayer = this.addWMSLayer(
-    //   wmsUrl,
-    //   `${this.workspace}:contour_layer`,
-    //   'Contour Layer'
-    // );
-
-    console.log(
-      '✓ DEM and Contour layers configured (TODO: add actual layers)'
-    );
-  }
-
-  // ============================================
-  // PHASE 2: Map Click Handler
-  // ============================================
-  setupMapClickHandler() {
-    const handler = new Cesium.ScreenSpaceEventHandler(
-      this.viewer.scene.canvas
-    );
-
-    handler.setInputAction((movement: any) => {
-      // Get clicked position
-      const pickedPosition = this.viewer.camera.pickEllipsoid(
-        movement.position,
-        this.viewer.scene.globe.ellipsoid
-      );
-
-      if (pickedPosition) {
-        const cartographic = Cesium.Cartographic.fromCartesian(pickedPosition);
-        const longitude = Cesium.Math.toDegrees(cartographic.longitude);
-        const latitude = Cesium.Math.toDegrees(cartographic.latitude);
-
-        console.log(
-          `Clicked position: Lat ${latitude.toFixed(
-            6
-          )}, Lon ${longitude.toFixed(6)}`
-        );
-
-        // TODO: Query GeoServer WFS สำหรับข้อมูล feature ที่ตำแหน่งนี้
-        // TODO: แสดง popup/info window
-        this.queryFeaturesAtLocation(longitude, latitude);
-      }
-    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-  }
-
-  // Query features from GeoServer WFS
-  async queryFeaturesAtLocation(longitude: number, latitude: number) {
-    console.log('TODO: Query GeoServer WFS at:', longitude, latitude);
-    // TODO: ใช้ WFS GetFeature request เพื่อ query ข้อมูล
-    // TODO: แสดงผลใน popup หรือ info panel
-  }
-
-  // Helper method สำหรับเพิ่ม WMS Layer
-  private addWMSLayer(
-    url: string,
-    layers: string,
-    name: string
-  ): Cesium.ImageryLayer | null {
-    try {
-      const provider = new Cesium.WebMapServiceImageryProvider({
-        url,
-        layers,
-        parameters: {
-          transparent: true,
-          format: 'image/png',
-          styles: '',
-        },
-      });
-      const layer = this.viewer.imageryLayers.addImageryProvider(provider);
-      layer.show = false;
-      console.log(`✓ Tier 3: ${name} loaded (WMS)`);
-      return layer;
-    } catch (error) {
-      console.error(`✗ Error loading ${name}:`, error);
-      return null;
-    }
-  }
-
-  // ============================================
-  // Layer Toggle Methods (เรียกจาก checkbox)
-  // ============================================
-  toggleOpenStreetMap() {
-    if (this.layers.openStreetMap) {
-      this.layers.openStreetMap.show = this.layerControls.openStreetMap;
-    }
-  }
-
-  toggleGoogleSatellite() {
-    if (this.layers.googleSatellite) {
-      this.layers.googleSatellite.show = this.layerControls.googleSatellite;
-    }
-  }
-
-  toggleProvinceBoundaries() {
-    if (this.layers.provinceBoundaries) {
-      this.layers.provinceBoundaries.show =
-        this.layerControls.provinceBoundaries;
-    }
-  }
-
-  toggleDistrictBoundaries() {
-    if (this.layers.districtBoundaries) {
-      this.layers.districtBoundaries.show =
-        this.layerControls.districtBoundaries;
-    }
-  }
-
-  toggleRoads() {
-    if (this.layers.roads) {
-      this.layers.roads.show = this.layerControls.roads;
-    }
-  }
-
-  toggleWaterways() {
-    if (this.layers.waterways) {
-      this.layers.waterways.show = this.layerControls.waterways;
-    }
-  }
-
-  // Phase 2: Toggle methods
-  toggleDEMLayer() {
-    if (this.layers.dem) {
-      this.layers.dem.show = this.layerControls.dem;
-    }
-  }
-
-  toggleContourLayer() {
-    if (this.layers.contour) {
-      this.layers.contour.show = this.layerControls.contour;
-    }
-  }
-
-  // ============================================
-  // Search Feature Methods
-  // ============================================
-  onSearchInput() {
-    if (this.searchTimeout) {
-      clearTimeout(this.searchTimeout);
+    ngAfterViewInit(): void {
+        (window as any).CESIUM_BASE_URL = '/assets/cesium/';
+        this.initCesium();
     }
 
-    if (!this.searchQuery.trim()) {
-      this.searchResults = [];
-      this.showSearchResults = false;
-      return;
-    }
+    initCesium() {
+        this.viewer = new Cesium.Viewer('cesiumContainer', {
+            timeline: false,
+            animation: false,
+            baseLayerPicker: false,
+            sceneModePicker: false,
+            geocoder: false,
+            homeButton: true,
+            fullscreenButton: true,
+            infoBox: false,
+            selectionIndicator: false,
+        });
 
-    this.searchTimeout = setTimeout(() => {
-      this.performSearch();
-    }, 300);
-  }
-
-  async performSearch() {
-    if (!this.searchQuery.trim()) return;
-
-    this.searchResults = [];
-    this.showSearchResults = true;
-
-    try {
-      const results = await this.searchGeoServer(this.searchQuery);
-      this.searchResults = results;
-    } catch (error) {
-      console.error('Search error:', error);
-      this.searchResults = [];
-    }
-  }
-
-  async searchGeoServer(query: string): Promise<any[]> {
-    const results: any[] = [];
-
-    try {
-      const provinceResults = await this.searchLayer(
-        `${this.workspace}:th_province`,
-        query,
-        'province',
-        'PROV_NAMT',
-        'PROV_NAME'
-      );
-      results.push(...provinceResults);
-
-      // Search districts - Note: current schema doesn't have name fields
-      const districtResults = await this.searchLayer(
-        `test-thailand:tha_admbndl_admALL_rtsd_itos_20220121`,
-        query,
-        'district',
-        'ADM2_TH',
-        'ADM2_EN'
-      );
-      results.push(...districtResults);
-
-      // Search POI (Points of Interest)
-      const poiResults = await this.searchLayer(
-        `${this.workspace}:gis_osm_pois`,
-        query,
-        'poi',
-        'name',
-        'name'
-      );
-      results.push(...poiResults);
-    } catch (error) {
-      console.error('GeoServer search error:', error);
-    }
-
-    return results.slice(0, 10);
-  }
-
-  async searchLayer(
-    layerName: string,
-    query: string,
-    type: string,
-    thField: string,
-    enField: string
-  ): Promise<any[]> {
-    try {
-      const wfsUrl = `${this.geoserverUrl}/wfs`;
-      const filter = `${thField} LIKE '%${query}%' OR ${enField} LIKE '%${query}%'`;
-
-      const params = new URLSearchParams({
-        service: 'WFS',
-        version: '1.0.0',
-        request: 'GetFeature',
-        typeName: layerName,
-        outputFormat: 'application/json',
-        CQL_FILTER: filter,
-        maxFeatures: '5',
-        srsName: 'EPSG:4326', // Request coordinates in WGS84 (lat/lon)
-      });
-
-      const response = await fetch(`${wfsUrl}?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error(`WFS request failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      if (!data.features || data.features.length === 0) {
-        return [];
-      }
-
-      return data.features.map((feature: any) => {
-        const props = feature.properties;
-        const geometry = feature.geometry;
-
-        let longitude = 0;
-        let latitude = 0;
-        let height = 50000;
-
-        if (geometry.type === 'Point') {
-          [longitude, latitude] = geometry.coordinates;
-        } else if (geometry.type === 'Polygon') {
-          const coords = geometry.coordinates[0];
-          longitude =
-            coords.reduce((sum: number, c: any) => sum + c[0], 0) /
-            coords.length;
-          latitude =
-            coords.reduce((sum: number, c: any) => sum + c[1], 0) /
-            coords.length;
-          height = type === 'province' ? 200000 : 100000;
-        } else if (geometry.type === 'MultiPolygon') {
-          const coords = geometry.coordinates[0][0];
-          longitude =
-            coords.reduce((sum: number, c: any) => sum + c[0], 0) /
-            coords.length;
-          latitude =
-            coords.reduce((sum: number, c: any) => sum + c[1], 0) /
-            coords.length;
-          height = type === 'province' ? 200000 : 100000;
+        const creditContainer = this.viewer.cesiumWidget.creditContainer as HTMLElement;
+        if (creditContainer) {
+            creditContainer.style.display = 'none';
         }
 
-        const nameTh = props[thField] || '';
-        const nameEn = props[enField] || '';
-        const displayName = nameTh || nameEn;
+        this.setupTier0_Globe();
+        this.setupTier1_Terrain();
+        this.setupTier2_Imagery();
+        this.setupTier3_VectorFeatures();
+        this.setupInteraction();
 
-        return {
-          name: displayName,
-          nameTh,
-          nameEn,
-          type,
-          typeLabel: this.getTypeLabel(type),
-          longitude,
-          latitude,
-          height,
-          icon: this.getTypeIcon(type),
+        this.viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(100.5018, 13.7563, 2000000),
+        });
+    }
+
+    setupTier0_Globe() {
+        console.log('✓ Tier 0: Globe (Ellipsoid) initialized');
+    }
+
+    setupTier1_Terrain() {
+        this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+        console.log('✓ Tier 1: Terrain (Ellipsoid) initialized');
+    }
+
+    setupTier2_Imagery() {
+        console.log('✓ Tier 2: Using Cesium default base map (Bing Maps)');
+
+        try {
+            const provider = new Cesium.OpenStreetMapImageryProvider({
+                url: 'https://a.tile.openstreetmap.org/',
+            });
+            this.layers.openStreetMap = this.viewer.imageryLayers.addImageryProvider(provider);
+            this.layers.openStreetMap.show = this.layerControls.openStreetMap;
+            this.viewer.imageryLayers.raiseToTop(this.layers.openStreetMap);
+            console.log('✓ Tier 2: OpenStreetMap loaded (optional)');
+        } catch (error) {
+            console.error('✗ Error loading OSM:', error);
+        }
+
+        try {
+            const provider = new Cesium.UrlTemplateImageryProvider({
+                url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                credit: 'Google Maps Satellite',
+            });
+            this.layers.googleSatellite = this.viewer.imageryLayers.addImageryProvider(provider);
+            this.layers.googleSatellite.show = this.layerControls.googleSatellite;
+            this.viewer.imageryLayers.raiseToTop(this.layers.googleSatellite);
+            console.log('✓ Tier 2: Google Maps Satellite loaded');
+        } catch (error) {
+            console.error('✗ Error loading Google Maps:', error);
+        }
+    }
+
+    setupTier3_VectorFeatures() {
+        const wmsUrl = `${this.geoserverUrl}/wms`;
+
+        this.layers.thailand = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand`, 'Open Street Map (Self)', 0);
+
+        this.layers.waterways = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_waterways`, 'Waterways', 1);
+
+        this.layers.roads = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_roads`, 'Roads', 2);
+
+        this.layers.provinceBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:th_province`, 'Province Boundaries', 3);
+
+        this.layers.districtBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand-amphoe`, 'District Boundaries', 4);
+
+        this.layers.subDistrictBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand-tambon`, 'SubDistrict Boundaries', 5);
+
+        this.layers.pois = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_pois`, 'POIs (Points of Interest)', 6);
+    }
+
+    private addWMSLayer(url: string, layers: string, name: string, zIndex: number = 0): Cesium.ImageryLayer | null {
+        try {
+            const provider = new Cesium.WebMapServiceImageryProvider({
+                url,
+                layers,
+                parameters: {
+                    transparent: true,
+                    format: 'image/png',
+                    styles: '',
+                    INFO_FORMAT: 'application/json',
+                },
+            });
+            const layer = this.viewer.imageryLayers.addImageryProvider(provider);
+            layer.show = false;
+
+            for (let i = 0; i < zIndex; i++) {
+                this.viewer.imageryLayers.raise(layer);
+            }
+
+            console.log(`✓ Tier 3: ${name} loaded (WMS) at z-index ${zIndex}`);
+            return layer;
+        } catch (error) {
+            console.error(`✗ Error loading ${name}:`, error);
+            return null;
+        }
+    }
+
+    toggleOpenStreetMap() {
+        if (this.layers.openStreetMap) {
+            this.layers.openStreetMap.show = this.layerControls.openStreetMap;
+        }
+    }
+
+    toggleGoogleSatellite() {
+        if (this.layers.googleSatellite) {
+            this.layers.googleSatellite.show = this.layerControls.googleSatellite;
+        }
+    }
+
+    toggleProvinceBoundaries() {
+        if (this.layers.provinceBoundaries) {
+            this.layers.provinceBoundaries.show = this.layerControls.provinceBoundaries;
+        }
+    }
+
+    toggleDistrictBoundaries() {
+        if (this.layers.districtBoundaries) {
+            this.layers.districtBoundaries.show = this.layerControls.districtBoundaries;
+        }
+    }
+
+    toggleSubDistrictBoundaries() {
+        if (this.layers.subDistrictBoundaries) {
+            this.layers.subDistrictBoundaries.show = this.layerControls.subDistrictBoundaries;
+        }
+    }
+
+    toggleRoads() {
+        if (this.layers.roads) {
+            this.layers.roads.show = this.layerControls.roads;
+        }
+    }
+
+    toggleWaterways() {
+        if (this.layers.waterways) {
+            this.layers.waterways.show = this.layerControls.waterways;
+        }
+    }
+
+    togglePOIs() {
+        if (this.layers.pois) {
+            this.layers.pois.show = this.layerControls.pois;
+        }
+    }
+
+    toggleThailand() {
+        if (this.layers.thailand) {
+            this.layers.thailand.show = this.layerControls.thailand;
+        }
+    }
+
+    async search(event: any) {
+        const query = event.query;
+        if (!query || query.trim().length === 0) {
+            this.suggestions = [];
+            return;
+        }
+
+        try {
+            this.suggestions = await this.searchGeoServer(query);
+        } catch (error) {
+            console.error('Search error:', error);
+            this.suggestions = [];
+        }
+    }
+
+    async searchGeoServer(query: string): Promise<any[]> {
+        const results: any[] = [];
+
+        try {
+            const provinceResults = await this.searchLayer(`${this.workspace}:th_province`, query, 'province', 'PROV_NAMT', 'PROV_NAME');
+            results.push(...provinceResults);
+
+            const districtResults = await this.searchLayer(`${this.workspace}:thailand-amphoe`, query, 'district', 'AMP_NAME_T', 'AMP_NAME_E');
+            results.push(...districtResults);
+
+            const subDistrictResults = await this.searchLayer(`${this.workspace}:thailand-tambon`, query, 'subdistrict', 'T_NAME_T', 'T_NAME_E');
+            results.push(...subDistrictResults);
+
+            const poiResults = await this.searchLayer(`${this.workspace}:gis_osm_pois`, query, 'poi', 'name', 'name');
+            results.push(...poiResults);
+        } catch (error) {
+            console.error('GeoServer search error:', error);
+        }
+
+        return results.slice(0, 10);
+    }
+
+    async searchLayer(layerName: string, query: string, type: string, thField: string, enField: string): Promise<any[]> {
+        try {
+            const wfsUrl = `${this.geoserverUrl}/wfs`;
+            const filter = `${thField} LIKE '%${query}%' OR ${enField} LIKE '%${query}%'`;
+
+            const params = new URLSearchParams({
+                service: 'WFS',
+                version: '1.0.0',
+                request: 'GetFeature',
+                typeName: layerName,
+                outputFormat: 'application/json',
+                CQL_FILTER: filter,
+                maxFeatures: '5',
+                srsName: 'EPSG:4326',
+            });
+
+            const fullUrl = `${wfsUrl}?${params.toString()}`;
+            console.log('🔍 Search Request:', {
+                layerName,
+                query,
+                filter,
+                url: fullUrl,
+            });
+
+            const response = await fetch(fullUrl);
+
+            console.log('📡 Response Status:', response.status, response.statusText);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ WFS Error Response:', errorText);
+                throw new Error(`WFS request failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('📦 WFS Response Data:', data);
+
+            if (!data.features || data.features.length === 0) {
+                console.warn('⚠️ No features found for query:', query);
+                return [];
+            }
+
+            console.log(`✅ Found ${data.features.length} features`);
+
+            return data.features.map((feature: any) => {
+                const props = feature.properties;
+                const geometry = feature.geometry;
+
+                console.log('📄 Feature properties:', props);
+                let longitude = 0;
+                let latitude = 0;
+                let height = 50000;
+                if (geometry.type === 'Point') {
+                    [longitude, latitude] = geometry.coordinates;
+                } else if (geometry.type === 'Polygon') {
+                    const coords = geometry.coordinates[0];
+                    longitude = coords.reduce((sum: number, c: any) => sum + c[0], 0) / coords.length;
+                    latitude = coords.reduce((sum: number, c: any) => sum + c[1], 0) / coords.length;
+                    height = type === 'province' ? 200000 : 100000;
+                } else if (geometry.type === 'MultiPolygon') {
+                    const coords = geometry.coordinates[0][0];
+                    longitude = coords.reduce((sum: number, c: any) => sum + c[0], 0) / coords.length;
+                    latitude = coords.reduce((sum: number, c: any) => sum + c[1], 0) / coords.length;
+                    height = type === 'province' ? 200000 : 100000;
+                }
+                const nameTh = props[thField] || '';
+                const nameEn = props[enField] || '';
+                const displayName = nameTh || nameEn;
+
+                console.log(`📌 Parsed: ${displayName} at (${longitude}, ${latitude})`);
+
+                return {
+                    name: displayName,
+                    nameTh,
+                    nameEn,
+                    type,
+                    typeLabel: this.getTypeLabel(type),
+                    longitude,
+                    latitude,
+                    height,
+                    icon: this.getTypeIcon(type),
+                };
+            });
+        } catch (error) {
+            console.error(`❌ Error searching ${layerName}:`, error);
+            return [];
+        }
+    }
+
+    getTypeLabel(type: string): string {
+        const labels: { [key: string]: string } = {
+            province: 'จังหวัด',
+            district: 'อำเภอ',
+            subdistrict: 'ตำบล',
+            poi: 'สถานที่',
         };
-      });
-    } catch (error) {
-      console.error(`Error searching ${layerName}:`, error);
-      return [];
+        return labels[type] || type;
     }
-  }
 
-  getTypeLabel(type: string): string {
-    const labels: { [key: string]: string } = {
-      province: 'จังหวัด',
-      district: 'อำเภอ/ตำบล',
-      poi: 'สถานที่',
-    };
-    return labels[type] || type;
-  }
-
-  getTypeIcon(type: string): string {
-    const icons: { [key: string]: string } = {
-      province: '🗺️',
-      district: '📍',
-      poi: '🏢',
-    };
-    return icons[type] || '📌';
-  }
-
-  selectSearchResult(result: any) {
-    this.viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(
-        result.longitude,
-        result.latitude,
-        result.height
-      ),
-      duration: 2,
-    });
-
-    this.showSearchResults = false;
-    console.log('Flying to:', result.name, result);
-  }
-
-  clearSearch() {
-    this.searchQuery = '';
-    this.searchResults = [];
-    this.showSearchResults = false;
-  }
-
-  ngOnDestroy(): void {
-    if (this.searchTimeout) {
-      clearTimeout(this.searchTimeout);
+    getTypeIcon(type: string): string {
+        const icons: { [key: string]: string } = {
+            province: 'cil-map',
+            district: 'cil-map',
+            subdistrict: 'cil-map',
+            poi: 'cil-location-pin',
+        };
+        return icons[type] || 'cil-cursor';
     }
-    this.viewer?.destroy();
-  }
+
+    selectSearchResult(event: any) {
+        const result = event.value;
+        if (!result) return;
+
+        console.log('🎯 Selected result:', result);
+        console.log('🎯 Result type:', result.type);
+        console.log('🎯 Result typeLabel:', result.typeLabel);
+        console.log('🎯 Is POI?', result.type === 'poi' || result.typeLabel === 'สถานที่');
+
+        if (this.pinEntity) {
+            this.viewer.entities.remove(this.pinEntity);
+            this.pinEntity = null;
+        }
+
+        const isPOI = result.type === 'poi' || result.typeLabel === 'สถานที่';
+
+        if (isPOI) {
+            console.log('📍 Creating pin marker for POI');
+            try {
+                this.pinEntity = this.viewer.entities.add({
+                    position: Cesium.Cartesian3.fromDegrees(result.longitude, result.latitude),
+                    billboard: {
+                        image: this.createPinIcon(),
+                        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                        horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+                        scale: 0.8,
+                        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                    },
+                    label: {
+                        text: result.name,
+                        font: 'bold 14px sans-serif',
+                        fillColor: Cesium.Color.fromCssColorString('#E74C3C'),
+                        showBackground: false,
+                        pixelOffset: new Cesium.Cartesian2(35, -15),
+                        horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+                        verticalOrigin: Cesium.VerticalOrigin.CENTER,
+                        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                    },
+                });
+                console.log('✅ Pin marker created successfully');
+            } catch (error) {
+                console.error('❌ Error creating pin marker:', error);
+            }
+        }
+
+        this.viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(result.longitude, result.latitude, isPOI ? 5000 : result.height),
+            duration: 2,
+        });
+
+        console.log('Flying to:', result.name, result);
+    }
+
+    clearSearch() {
+        this.searchQuery = null;
+        this.suggestions = [];
+        if (this.pinEntity) {
+            this.viewer.entities.remove(this.pinEntity);
+            this.pinEntity = null;
+        }
+    }
+
+    private createPinIcon(): string {
+        const canvas = document.createElement('canvas');
+        canvas.width = 48;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return '';
+
+        ctx.fillStyle = '#FF4444';
+        ctx.beginPath();
+        ctx.moveTo(24, 64);
+        ctx.bezierCurveTo(24, 64, 0, 40, 0, 24);
+        ctx.bezierCurveTo(0, 10.7, 10.7, 0, 24, 0);
+        ctx.bezierCurveTo(37.3, 0, 48, 10.7, 48, 24);
+        ctx.bezierCurveTo(48, 40, 24, 64, 24, 64);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(24, 24, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        return canvas.toDataURL();
+    }
+
+    ngOnDestroy(): void {
+        if (this.searchTimeout) {
+            clearTimeout(this.searchTimeout);
+        }
+        this.viewer?.destroy();
+        if (this.handler) {
+            this.handler.destroy();
+        }
+    }
+
+    setupInteraction() {
+        this.handler = new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
+
+        this.handler.setInputAction(async (movement: any) => {
+            const ray = this.viewer.camera.getPickRay(movement.position);
+            if (!ray) return;
+
+            const pickedFeatures = this.viewer.imageryLayers.pickImageryLayerFeatures(ray, this.viewer.scene);
+
+            if (!Cesium.defined(pickedFeatures)) {
+                this.selectedFeature = null;
+                return;
+            }
+
+            try {
+                const features = await Promise.resolve(pickedFeatures);
+
+                if (features && features.length > 0) {
+                    const feature: any = features[0];
+
+                    let properties = feature.properties;
+                    if (!properties && feature.data && feature.data.properties) {
+                        properties = feature.data.properties;
+                    } else if (!properties && feature.data) {
+                        properties = feature.data;
+                    }
+
+                    this.selectedFeature = {
+                        properties: properties || {},
+                        name: feature.name,
+                    };
+                    this.modalVisible = true;
+                } else {
+                    this.selectedFeature = null;
+                }
+            } catch (error) {
+                console.error('❌ Error picking features:', error);
+            }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    }
+
+    handleModalChange(event: boolean) {
+        this.modalVisible = event;
+    }
+
+    getLabel(key: any): string {
+        return this.fieldLabels[String(key)] || String(key);
+    }
+
+    getDisplayItems(): { key: string; value: any; label: string }[] {
+        if (!this.selectedFeature?.properties) return [];
+
+        const entries = Object.entries(this.selectedFeature.properties).map(([key, value]) => ({
+            key,
+            value,
+            label: this.getLabel(key),
+        }));
+        return entries.sort((a, b) => {
+            if (a.key === 'Area_km2_') return 1;
+            if (b.key === 'Area_km2_') return -1;
+            return 0;
+        });
+    }
 }

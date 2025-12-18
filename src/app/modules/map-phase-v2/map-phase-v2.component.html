@@ -1,11 +1,29 @@
 <div class="map-wrapper">
   <div id="cesiumContainer"></div>
 
-  <!-- Layer Control Panel (with integrated Search) -->
+  <div class="search-panel">
+    <div class="search-panel-content">
+      <p-autoComplete [(ngModel)]="searchQuery" [suggestions]="suggestions" (completeMethod)="search($event)"
+        (onSelect)="selectSearchResult($event)" field="name" placeholder="Search" [style]="{ width: '100%' }"
+        [inputStyle]="{ width: '100%' }">
+        <ng-template let-result pTemplate="item">
+          <div class="search-result-item-prime">
+            <svg cIcon [name]="result.icon" size="lg"></svg>
+            <div>
+              <b>{{ result.name }}</b>
+              <div class="type">{{ result.typeLabel }}</div>
+            </div>
+          </div>
+        </ng-template>
+      </p-autoComplete>
+    </div>
+  </div>
+
+
   <div class="layer-control-panel" [class.collapsed]="panelCollapsed">
     <div class="panel-header" (click)="togglePanel()">
       <h3 class="panel-title">
-        <i class="icon-layers"></i>
+
         <span>Layer Control</span>
       </h3>
       <button class="toggle-button">
@@ -14,76 +32,24 @@
     </div>
 
     <div class="panel-content" *ngIf="!panelCollapsed">
-      <!-- Search Section -->
-      <div class="search-section">
-        <div class="search-box">
-          <i class="search-icon">🔍</i>
-          <input
-            type="text"
-            [(ngModel)]="searchQuery"
-            (input)="onSearchInput()"
-            placeholder="ค้นหา จังหวัด อำเภอ ตำบล..."
-            class="search-input"
-          />
-          <button
-            *ngIf="searchQuery"
-            (click)="clearSearch()"
-            class="clear-button"
-            title="ล้างการค้นหา"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div class="search-results" *ngIf="showSearchResults">
-          <div
-            *ngFor="let result of searchResults"
-            class="search-result-item"
-            (click)="selectSearchResult(result)"
-          >
-            <div class="result-icon">{{ result.icon }}</div>
-            <div class="result-info">
-              <div class="result-name">{{ result.name }}</div>
-              <div class="result-type">{{ result.typeLabel }}</div>
-            </div>
-          </div>
-
-          <div class="no-results" *ngIf="searchResults.length === 0">
-            <i>🔍</i>
-            <p>ไม่พบผลลัพธ์</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Layer Controls Section -->
       <div class="layer-controls">
-        <!-- OpenStreetMap -->
         <div class="layer-item">
           <label class="layer-label">
-            <input
-              type="checkbox"
-              [(ngModel)]="layerControls.openStreetMap"
-              (change)="toggleOpenStreetMap()"
-              class="layer-checkbox"
-            />
+            <input type="checkbox" [(ngModel)]="layerControls.openStreetMap" (change)="toggleOpenStreetMap()"
+              class="layer-checkbox" />
             <span class="layer-name">
-              <i class="icon-map"></i>
-              OpenStreetMap
+
+              Open Street Map
             </span>
           </label>
         </div>
 
-        <!-- Google Maps Satellite -->
         <div class="layer-item">
           <label class="layer-label">
-            <input
-              type="checkbox"
-              [(ngModel)]="layerControls.googleSatellite"
-              (change)="toggleGoogleSatellite()"
-              class="layer-checkbox"
-            />
+            <input type="checkbox" [(ngModel)]="layerControls.googleSatellite" (change)="toggleGoogleSatellite()"
+              class="layer-checkbox" />
             <span class="layer-name">
-              <i class="icon-satellite"></i>
+
               Google Satellite
             </span>
           </label>
@@ -91,119 +57,111 @@
 
         <div class="divider"></div>
 
-        <!-- Phase 2: DEM & Contour -->
-        <div class="section-title">📊 Elevation Data</div>
-
         <div class="layer-item">
           <label class="layer-label">
-            <input
-              type="checkbox"
-              [(ngModel)]="layerControls.dem"
-              (change)="toggleDEMLayer()"
-              class="layer-checkbox"
-            />
+            <input type="checkbox" [(ngModel)]="layerControls.provinceBoundaries" (change)="toggleProvinceBoundaries()"
+              class="layer-checkbox" />
             <span class="layer-name">
-              <i class="icon-dem"></i>
-              DEM (ความสูง)
-            </span>
-          </label>
-        </div>
 
-        <div class="layer-item">
-          <label class="layer-label">
-            <input
-              type="checkbox"
-              [(ngModel)]="layerControls.contour"
-              (change)="toggleContourLayer()"
-              class="layer-checkbox"
-            />
-            <span class="layer-name">
-              <i class="icon-contour"></i>
-              Contour (ขอบเขตระดับ)
-            </span>
-          </label>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="section-title">🗺️ Boundaries</div>
-
-        <!-- Province Boundaries -->
-        <div class="layer-item">
-          <label class="layer-label">
-            <input
-              type="checkbox"
-              [(ngModel)]="layerControls.provinceBoundaries"
-              (change)="toggleProvinceBoundaries()"
-              class="layer-checkbox"
-            />
-            <span class="layer-name">
-              <i class="icon-boundary"></i>
               ขอบเขตจังหวัด
             </span>
           </label>
         </div>
 
-        <!-- District Boundaries -->
         <div class="layer-item">
           <label class="layer-label">
-            <input
-              type="checkbox"
-              [(ngModel)]="layerControls.districtBoundaries"
-              (change)="toggleDistrictBoundaries()"
-              class="layer-checkbox"
-            />
+            <input type="checkbox" [(ngModel)]="layerControls.districtBoundaries" (change)="toggleDistrictBoundaries()"
+              class="layer-checkbox" />
             <span class="layer-name">
-              <i class="icon-boundary"></i>
-              ขอบเขตอำเภอ/ตำบล
+
+              ขอบเขตอำเภอ
             </span>
           </label>
         </div>
 
-        <div class="divider"></div>
-
-        <div class="section-title">🚗 Infrastructure</div>
-
-        <!-- Roads -->
         <div class="layer-item">
           <label class="layer-label">
-            <input
-              type="checkbox"
-              [(ngModel)]="layerControls.roads"
-              (change)="toggleRoads()"
-              class="layer-checkbox"
-            />
+            <input type="checkbox" [(ngModel)]="layerControls.subDistrictBoundaries"
+              (change)="toggleSubDistrictBoundaries()" class="layer-checkbox" />
             <span class="layer-name">
-              <i class="icon-road"></i>
+
+              ขอบเขตตำบล
+            </span>
+          </label>
+        </div>
+
+        <div class="layer-item">
+          <label class="layer-label">
+            <input type="checkbox" [(ngModel)]="layerControls.roads" (change)="toggleRoads()" class="layer-checkbox" />
+            <span class="layer-name">
+
               ถนน
             </span>
           </label>
         </div>
 
-        <!-- Waterways -->
         <div class="layer-item">
           <label class="layer-label">
-            <input
-              type="checkbox"
-              [(ngModel)]="layerControls.waterways"
-              (change)="toggleWaterways()"
-              class="layer-checkbox"
-            />
+            <input type="checkbox" [(ngModel)]="layerControls.waterways" (change)="toggleWaterways()"
+              class="layer-checkbox" />
             <span class="layer-name">
-              <i class="icon-water"></i>
+
               คลอง/ทางน้ำ
             </span>
           </label>
         </div>
+
+        <div class="layer-item">
+          <label class="layer-label">
+            <input type="checkbox" [(ngModel)]="layerControls.pois" (change)="togglePOIs()" class="layer-checkbox" />
+            <span class="layer-name">
+
+              สถานที่ (POI)
+            </span>
+          </label>
+        </div>
+
+        <div class="layer-item">
+          <label class="layer-label">
+            <input type="checkbox" [(ngModel)]="layerControls.thailand" (change)="toggleThailand()"
+              class="layer-checkbox" />
+            <span class="layer-name">
+
+              Open Street Map (Self)
+
+            </span>
+          </label>
+        </div>
+
       </div>
     </div>
   </div>
 
-  <!-- Phase 2: Info Panel (แสดงเมื่อคลิกแผนที่) -->
-  <div class="info-panel" style="display: none;">
-    <div class="info-content">
-      <h4>Feature Information</h4>
-      <div id="featureInfo"></div>
-    </div>
-  </div>
+  <c-modal [visible]="modalVisible" (visibleChange)="handleModalChange($event)" alignment="top" class="modal-top-right">
+    <c-modal-header>
+      <h5 cModalTitle>{{
+        selectedFeature?.properties?.['PROV_NAMT'] ||
+        selectedFeature?.properties?.['AMP_NAME_T'] ||
+        selectedFeature?.properties?.['T_NAME_T'] ||
+        selectedFeature?.properties?.['P_NAME_T'] ||
+        selectedFeature?.properties?.['PROV_NAME'] ||
+        selectedFeature?.properties?.['NAME'] ||
+        selectedFeature?.name ||
+        'รายละเอียด'
+        }}</h5>
+      <button (click)="handleModalChange(false)" cButtonClose></button>
+    </c-modal-header>
+    <c-modal-body>
+      <table cTable hover>
+        <tbody>
+          <tr *ngFor="let item of getDisplayItems()">
+            <td class="font-weight-bold" style="width: 40%">{{ item.label }}</td>
+            <td>{{ item.value }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </c-modal-body>
+  </c-modal>
+
+
 </div>

@@ -1,121 +1,115 @@
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [
-  {
-    path: '',
-    redirectTo: 'map-phase-v1',
-    pathMatch: 'full',
-  },
-  // {
-  //   path: '',
-  //   loadComponent: () => import('./layout').then(m => m.DefaultLayoutComponent),
-  //   data: {
-  //     title: 'Home'
-  //   },
-  //   children: [
-  //     {
-  //       path: 'dashboard',
-  //       loadChildren: () => import('./views/dashboard/routes').then((m) => m.routes)
-  //     },
-  //     {
-  //       path: 'theme',
-  //       loadChildren: () => import('./views/theme/routes').then((m) => m.routes)
-  //     },
-  //     {
-  //       path: 'base',
-  //       loadChildren: () => import('./views/base/routes').then((m) => m.routes)
-  //     },
-  //     {
-  //       path: 'buttons',
-  //       loadChildren: () => import('./views/buttons/routes').then((m) => m.routes)
-  //     },
-  //     {
-  //       path: 'forms',
-  //       loadChildren: () => import('./views/forms/routes').then((m) => m.routes)
-  //     },
-  //     {
-  //       path: 'icons',
-  //       loadChildren: () => import('./views/icons/routes').then((m) => m.routes)
-  //     },
-  //     {
-  //       path: 'notifications',
-  //       loadChildren: () => import('./views/notifications/routes').then((m) => m.routes)
-  //     },
-  //     {
-  //       path: 'widgets',
-  //       loadChildren: () => import('./views/widgets/routes').then((m) => m.routes)
-  //     },
-  //     {
-  //       path: 'charts',
-  //       loadChildren: () => import('./views/charts/routes').then((m) => m.routes)
-  //     },
-  //     {
-  //       path: 'pages',
-  //       loadChildren: () => import('./views/pages/routes').then((m) => m.routes)
-  //     }
-  //   ]
-  // },
-
-  {
-    path: 'map-phase-v1',
-    loadComponent: () =>
-      import('./modules/map-phase-v1/map-phase-v1.component').then(
-        (m) => m.MapPhaseV1Component
-      ),
-    data: {
-      title: 'Map Phase 1',
+    {
+        path: '',
+        redirectTo: 'map-phase-v1',
+        pathMatch: 'full',
     },
-  },
+    // {
+    //   path: '',
+    //   loadComponent: () => import('./layout').then(m => m.DefaultLayoutComponent),
+    //   data: {
+    //     title: 'Home'
+    //   },
+    //   children: [
+    //     {
+    //       path: 'dashboard',
+    //       loadChildren: () => import('./views/dashboard/routes').then((m) => m.routes)
+    //     },
+    //     {
+    //       path: 'theme',
+    //       loadChildren: () => import('./views/theme/routes').then((m) => m.routes)
+    //     },
+    //     {
+    //       path: 'base',
+    //       loadChildren: () => import('./views/base/routes').then((m) => m.routes)
+    //     },
+    //     {
+    //       path: 'buttons',
+    //       loadChildren: () => import('./views/buttons/routes').then((m) => m.routes)
+    //     },
+    //     {
+    //       path: 'forms',
+    //       loadChildren: () => import('./views/forms/routes').then((m) => m.routes)
+    //     },
+    //     {
+    //       path: 'icons',
+    //       loadChildren: () => import('./views/icons/routes').then((m) => m.routes)
+    //     },
+    //     {
+    //       path: 'notifications',
+    //       loadChildren: () => import('./views/notifications/routes').then((m) => m.routes)
+    //     },
+    //     {
+    //       path: 'widgets',
+    //       loadChildren: () => import('./views/widgets/routes').then((m) => m.routes)
+    //     },
+    //     {
+    //       path: 'charts',
+    //       loadChildren: () => import('./views/charts/routes').then((m) => m.routes)
+    //     },
+    //     {
+    //       path: 'pages',
+    //       loadChildren: () => import('./views/pages/routes').then((m) => m.routes)
+    //     }
+    //   ]
+    // },
 
-  {
-    path: 'map-phase-v2',
-    loadComponent: () =>
-      import('./modules/map-phase-v2/map-phase-v2.component').then(
-        (m) => m.MapPhaseV2Component
-      ),
-    data: {
-      title: 'Map Phase 2',
+    {
+        path: 'map-phase-v1',
+        loadComponent: () => import('./modules/map-phase-v1/map-phase-v1.component').then((m) => m.MapPhaseV1Component),
+        data: {
+            title: 'Map Phase 1',
+        },
     },
-  },
 
-  {
-    path: 'map-phase-v3',
-    loadComponent: () =>
-      import('./modules/map-phase-v3/map-phase-v3.component').then(
-        (m) => m.MapPhaseV3Component
-      ),
-    data: {
-      title: 'Map Phase 3',
+    {
+        path: 'map-phase-v2',
+        loadComponent: () => import('./modules/map-phase-v2/map-phase-v2.component').then((m) => m.MapPhaseV2Component),
+        data: {
+            title: 'Map Phase 2',
+        },
     },
-  },
 
-  // {
-  //   path: '404',
-  //   loadComponent: () => import('./views/pages/page404/page404.component').then(m => m.Page404Component),
-  //   data: {
-  //     title: 'Page 404'
-  //   }
-  // },
-  // {
-  //   path: '500',
-  //   loadComponent: () => import('./views/pages/page500/page500.component').then(m => m.Page500Component),
-  //   data: {
-  //     title: 'Page 500'
-  //   }
-  // },
-  // {
-  //   path: 'login',
-  //   loadComponent: () => import('./views/pages/login/login.component').then(m => m.LoginComponent),
-  //   data: {
-  //     title: 'Login Page'
-  //   }
-  // },
-  // {
-  //   path: 'register',
-  //   loadComponent: () => import('./views/pages/register/register.component').then(m => m.RegisterComponent),
-  //   data: {
-  //     title: 'Register Page'
-  //   }
-  // },
-  { path: '**', redirectTo: 'map-phase-v1' },
+    // {
+    //   path: 'map-phase-v3',
+    //   loadComponent: () =>
+    //     import('./modules/map-phase-v3/map-phase-v3.component').then(
+    //       (m) => m.MapPhaseV3Component
+    //     ),
+    //   data: {
+    //     title: 'Map Phase 3',
+    //   },
+    // },
+
+    // {
+    //   path: '404',
+    //   loadComponent: () => import('./views/pages/page404/page404.component').then(m => m.Page404Component),
+    //   data: {
+    //     title: 'Page 404'
+    //   }
+    // },
+    // {
+    //   path: '500',
+    //   loadComponent: () => import('./views/pages/page500/page500.component').then(m => m.Page500Component),
+    //   data: {
+    //     title: 'Page 500'
+    //   }
+    // },
+    // {
+    //   path: 'login',
+    //   loadComponent: () => import('./views/pages/login/login.component').then(m => m.LoginComponent),
+    //   data: {
+    //     title: 'Login Page'
+    //   }
+    // },
+    // {
+    //   path: 'register',
+    //   loadComponent: () => import('./views/pages/register/register.component').then(m => m.RegisterComponent),
+    //   data: {
+    //     title: 'Register Page'
+    //   }
+    // },
+    { path: '**', redirectTo: 'map-phase-v1' },
 ];
