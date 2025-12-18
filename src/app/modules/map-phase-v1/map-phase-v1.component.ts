@@ -54,14 +54,16 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   private layers = {
     openStreetMap: null as Cesium.ImageryLayer | null,
     googleSatellite: null as Cesium.ImageryLayer | null,
-    provinceBoundaries: null as Cesium.ImageryLayer | null,
-    districtBoundaries: null as Cesium.ImageryLayer | null,
-    subDistrictBoundaries: null as Cesium.ImageryLayer | null,
-    roads: null as Cesium.ImageryLayer | null,
-    waterways: null as Cesium.ImageryLayer | null,
-
+    provinceBoundaries: null as Cesium.GeoJsonDataSource | null,
+    districtBoundaries: null as Cesium.GeoJsonDataSource | null,
+    subDistrictBoundaries: null as Cesium.GeoJsonDataSource | null,
+    roads: null as Cesium.GeoJsonDataSource | null,
+    waterways: null as Cesium.GeoJsonDataSource | null,
+    pois: null as Cesium.GeoJsonDataSource | null,
     thailand: null as Cesium.ImageryLayer | null,
   };
+
+  private searchMarker: Cesium.Entity | null = null;
 
   layerControls = {
     openStreetMap: false,
@@ -71,6 +73,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     subDistrictBoundaries: false,
     roads: false,
     waterways: false,
+    pois: false,
     thailand: false,
   };
 
@@ -124,11 +127,19 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
       selectionIndicator: false,
     });
 
+    // Remove Cesium Ion credit
+    const creditContainer = this.viewer.cesiumWidget
+      .creditContainer as HTMLElement;
+    if (creditContainer) {
+      creditContainer.style.display = 'none';
+    }
+
     this.setupTier0_Globe();
     this.setupTier1_Terrain();
     this.setupTier2_Imagery();
     this.setupTier3_VectorFeatures();
     this.setupInteraction();
+    this.setupZoomBasedVisibility();
 
     this.viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(100.5018, 13.7563, 2000000),
@@ -174,41 +185,84 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   }
 
   setupTier3_VectorFeatures() {
-    console.log(
-      '⚠️ Tier 3: Using WMS (Phase 1) - Should migrate to WFS in Phase 2'
-    );
+    console.log('✓ Tier 3: Loading Vector Features (GeoJSON via WFS)');
 
-    const wmsUrl = `${this.geoserverUrl}/wms`;
-    this.layers.provinceBoundaries = this.addWMSLayer(
-      wmsUrl,
+    const wfsUrl = `${this.geoserverUrl}/wfs`;
+
+    // Load vector layers
+    this.addVectorLayer(
+      wfsUrl,
       `${this.workspace}:th_province`,
-      'Province Boundaries'
+      'provinceBoundaries',
+      'Province Boundaries',
+      {
+        stroke: Cesium.Color.BLUE.withAlpha(0.8),
+        strokeWidth: 2,
+        fill: Cesium.Color.BLUE.withAlpha(0.1),
+      }
     );
 
-    this.layers.districtBoundaries = this.addWMSLayer(
-      wmsUrl,
+    this.addVectorLayer(
+      wfsUrl,
       `${this.workspace}:thailand-amphoe`,
-      'District Boundaries'
+      'districtBoundaries',
+      'District Boundaries',
+      {
+        stroke: Cesium.Color.GREEN.withAlpha(0.7),
+        strokeWidth: 1.5,
+        fill: Cesium.Color.GREEN.withAlpha(0.05),
+      }
     );
 
-    this.layers.subDistrictBoundaries = this.addWMSLayer(
-      wmsUrl,
+    this.addVectorLayer(
+      wfsUrl,
       `${this.workspace}:thailand-tambon`,
-      'SubDistrict Boundaries'
+      'subDistrictBoundaries',
+      'SubDistrict Boundaries',
+      {
+        stroke: Cesium.Color.ORANGE.withAlpha(0.6),
+        strokeWidth: 1,
+        fill: Cesium.Color.ORANGE.withAlpha(0.03),
+      }
     );
 
-    this.layers.roads = this.addWMSLayer(
-      wmsUrl,
+    this.addVectorLayer(
+      wfsUrl,
       `${this.workspace}:gis_osm_roads`,
-      'Roads'
+      'roads',
+      'Roads',
+      {
+        stroke: Cesium.Color.YELLOW.withAlpha(0.8),
+        strokeWidth: 2,
+        fill: Cesium.Color.TRANSPARENT,
+      }
     );
 
-    this.layers.waterways = this.addWMSLayer(
-      wmsUrl,
+    this.addVectorLayer(
+      wfsUrl,
       `${this.workspace}:gis_osm_waterways`,
-      'Waterways'
+      'waterways',
+      'Waterways',
+      {
+        stroke: Cesium.Color.CYAN.withAlpha(0.7),
+        strokeWidth: 2,
+        fill: Cesium.Color.TRANSPARENT,
+      }
     );
 
+    this.addVectorLayer(
+      wfsUrl,
+      `${this.workspace}:gis_osm_pois`,
+      'pois',
+      'POIs',
+      {
+        markerSize: 32,
+        markerColor: Cesium.Color.RED,
+      }
+    );
+
+    // Keep thailand as WMS for base map
+    const wmsUrl = `${this.geoserverUrl}/wms`;
     this.layers.thailand = this.addWMSLayer(
       wmsUrl,
       `${this.workspace}:thailand`,
@@ -239,6 +293,53 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     } catch (error) {
       console.error(`✗ Error loading ${name}:`, error);
       return null;
+    }
+  }
+
+  private async addVectorLayer(
+    wfsUrl: string,
+    layerName: string,
+    layerKey: keyof typeof this.layers,
+    displayName: string,
+    style: {
+      stroke?: Cesium.Color;
+      strokeWidth?: number;
+      fill?: Cesium.Color;
+      markerSize?: number;
+      markerColor?: Cesium.Color;
+    }
+  ) {
+    try {
+      const params = new URLSearchParams({
+        service: 'WFS',
+        version: '1.0.0',
+        request: 'GetFeature',
+        typeName: layerName,
+        outputFormat: 'application/json',
+        srsName: 'EPSG:4326',
+      });
+
+      const fullUrl = `${wfsUrl}?${params.toString()}`;
+      console.log(`Loading vector layer: ${displayName} from ${fullUrl}`);
+
+      const dataSource = await Cesium.GeoJsonDataSource.load(fullUrl, {
+        stroke: style.stroke || Cesium.Color.WHITE,
+        strokeWidth: style.strokeWidth || 2,
+        fill: style.fill || Cesium.Color.WHITE.withAlpha(0.1),
+        markerSize: style.markerSize || 24,
+        markerColor: style.markerColor || Cesium.Color.RED,
+      });
+
+      this.viewer.dataSources.add(dataSource);
+      dataSource.show = false; // Hide by default
+
+      // Store the dataSource in the layers object
+      (this.layers as any)[layerKey] = dataSource;
+
+      console.log(`✓ Tier 3: ${displayName} loaded (Vector/GeoJSON)`);
+    } catch (error) {
+      console.error(`✗ Error loading ${displayName}:`, error);
+      (this.layers as any)[layerKey] = null;
     }
   }
 
@@ -287,6 +388,12 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     }
   }
 
+  togglePOIs() {
+    if (this.layers.pois) {
+      this.layers.pois.show = this.layerControls.pois;
+    }
+  }
+
   toggleThailand() {
     if (this.layers.thailand) {
       this.layers.thailand.show = this.layerControls.thailand;
@@ -295,15 +402,22 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
 
   async search(event: any) {
     const query = event.query;
+    console.log('🔎 Search triggered with query:', query);
+
     if (!query || query.trim().length === 0) {
+      console.log('⚠️ Empty query, clearing suggestions');
       this.suggestions = [];
       return;
     }
 
     try {
       this.suggestions = await this.searchGeoServer(query);
+      console.log(
+        `✅ Search completed: ${this.suggestions.length} results found`,
+        this.suggestions
+      );
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('❌ Search error:', error);
       this.suggestions = [];
     }
   }
@@ -481,6 +595,36 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     const result = event.value;
     if (!result) return;
 
+    // Remove previous search marker if exists
+    if (this.searchMarker) {
+      this.viewer.entities.remove(this.searchMarker);
+      this.searchMarker = null;
+    }
+
+    // Create new pin marker at the selected location
+    this.searchMarker = this.viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(
+        result.longitude,
+        result.latitude
+      ),
+      billboard: {
+        image: this.createPinIcon(),
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        scale: 0.5,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+      },
+      label: {
+        text: result.name,
+        font: '14pt sans-serif',
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        outlineWidth: 2,
+        verticalOrigin: Cesium.VerticalOrigin.TOP,
+        pixelOffset: new Cesium.Cartesian2(0, 10),
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+      },
+    });
+
+    // Fly to the location
     this.viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(
         result.longitude,
@@ -496,6 +640,63 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
   clearSearch() {
     this.searchQuery = null;
     this.suggestions = [];
+  }
+
+  private createPinIcon(): string {
+    // Create a simple pin icon using SVG
+    const svg = `
+      <svg width="48" height="48" xmlns="http://www.w3.org/2000/svg">
+        <path d="M24 0c-9.8 0-17.7 7.8-17.7 17.4 0 15.5 17.7 30.6 17.7 30.6s17.7-15.4 17.7-30.6c0-9.6-7.9-17.4-17.7-17.4z"
+              fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+        <circle cx="24" cy="17" r="6" fill="white"/>
+      </svg>
+    `;
+    return 'data:image/svg+xml;base64,' + btoa(svg);
+  }
+
+  setupZoomBasedVisibility() {
+    this.viewer.camera.changed.addEventListener(() => {
+      const cameraHeight = this.viewer.camera.positionCartographic.height;
+
+      // Province boundaries: show when far away (high altitude) AND user toggled it on
+      if (this.layers.provinceBoundaries) {
+        this.layers.provinceBoundaries.show =
+          this.layerControls.provinceBoundaries && cameraHeight > 500000;
+      }
+
+      // District boundaries: show at medium altitude AND user toggled it on
+      if (this.layers.districtBoundaries) {
+        this.layers.districtBoundaries.show =
+          this.layerControls.districtBoundaries &&
+          cameraHeight < 800000 &&
+          cameraHeight > 100000;
+      }
+
+      // Sub-district boundaries: show when closer AND user toggled it on
+      if (this.layers.subDistrictBoundaries) {
+        this.layers.subDistrictBoundaries.show =
+          this.layerControls.subDistrictBoundaries &&
+          cameraHeight < 300000 &&
+          cameraHeight > 50000;
+      }
+
+      // Roads: show only when very close AND user toggled it on
+      if (this.layers.roads) {
+        this.layers.roads.show =
+          this.layerControls.roads && cameraHeight < 100000;
+      }
+
+      // Waterways: show when moderately close AND user toggled it on
+      if (this.layers.waterways) {
+        this.layers.waterways.show =
+          this.layerControls.waterways && cameraHeight < 150000;
+      }
+
+      // POIs: show only when very close AND user toggled it on
+      if (this.layers.pois) {
+        this.layers.pois.show = this.layerControls.pois && cameraHeight < 50000;
+      }
+    });
   }
 
   ngOnDestroy(): void {

@@ -113,6 +113,17 @@
 
         <div class="layer-item">
           <label class="layer-label">
+            <input type="checkbox" [(ngModel)]="layerControls.pois" (change)="togglePOIs()" class="layer-checkbox" />
+            <span class="layer-name">
+              สถานที่สำคัญ (POI)
+            </span>
+          </label>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="layer-item">
+          <label class="layer-label">
             <input type="checkbox" [(ngModel)]="layerControls.thailand" (change)="toggleThailand()"
               class="layer-checkbox" />
             <span class="layer-name">
