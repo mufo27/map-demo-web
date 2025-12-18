@@ -19,11 +19,9 @@
     </div>
   </div>
 
-
   <div class="layer-control-panel" [class.collapsed]="panelCollapsed">
     <div class="panel-header" (click)="togglePanel()">
       <h3 class="panel-title">
-
         <span>Layer Control</span>
       </h3>
       <button class="toggle-button">
@@ -33,104 +31,133 @@
 
     <div class="panel-content" *ngIf="!panelCollapsed">
       <div class="layer-controls">
-        <div class="layer-item">
-          <label class="layer-label">
-            <input type="checkbox" [(ngModel)]="layerControls.openStreetMap" (change)="toggleOpenStreetMap()"
-              class="layer-checkbox" />
-            <span class="layer-name">
 
-              Open Street Map
-            </span>
-          </label>
+        <!-- Tier 0: Globe/Ellipsoid -->
+        <div class="tier-section">
+          <div class="tier-header">
+            <input type="checkbox" class="tier-checkbox" [(ngModel)]="tierControls.tier0" (change)="toggleTier0()" />
+            <span class="tier-name">🌍 Tier 0: Globe (Ellipsoid)</span>
+          </div>
         </div>
 
-        <div class="layer-item">
-          <label class="layer-label">
-            <input type="checkbox" [(ngModel)]="layerControls.googleSatellite" (change)="toggleGoogleSatellite()"
-              class="layer-checkbox" />
-            <span class="layer-name">
-
-              Google Satellite
-            </span>
-          </label>
+        <!-- Tier 1: Terrain -->
+        <div class="tier-section">
+          <div class="tier-header">
+            <input type="checkbox" class="tier-checkbox" [(ngModel)]="tierControls.tier1" (change)="toggleTier1()" />
+            <span class="tier-name">🗻 Tier 1: Terrain (DEM)</span>
+          </div>
         </div>
 
-        <div class="divider"></div>
-
-        <div class="layer-item">
-          <label class="layer-label">
-            <input type="checkbox" [(ngModel)]="layerControls.provinceBoundaries" (change)="toggleProvinceBoundaries()"
-              class="layer-checkbox" />
-            <span class="layer-name">
-
-              ขอบเขตจังหวัด
+        <!-- Tier 2: Imagery -->
+        <div class="tier-section">
+          <div class="tier-header">
+            <input type="checkbox" class="tier-checkbox" [(ngModel)]="tierControls.tier2" (change)="toggleTier2()" />
+            <span class="tier-name tier-clickable" (click)="toggleTier2Collapse()">
+              <svg cIcon [name]="tierCollapsed.tier2 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"
+                class="tier-toggle-icon"></svg>
+              🗺️ Tier 2: Imagery
             </span>
-          </label>
+          </div>
+          <div class="tier-layers" *ngIf="!tierCollapsed.tier2">
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.openStreetMap"
+                  (change)="toggleOpenStreetMap()" />
+                <span class="layer-name">Open Street Map</span>
+              </label>
+            </div>
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.googleSatellite"
+                  (change)="toggleGoogleSatellite()" />
+                <span class="layer-name">Google Satellite</span>
+              </label>
+            </div>
+          </div>
         </div>
 
-        <div class="layer-item">
-          <label class="layer-label">
-            <input type="checkbox" [(ngModel)]="layerControls.districtBoundaries" (change)="toggleDistrictBoundaries()"
-              class="layer-checkbox" />
-            <span class="layer-name">
-
-              ขอบเขตอำเภอ
+        <!-- Tier 3: Vector/Features -->
+        <div class="tier-section">
+          <div class="tier-header">
+            <input type="checkbox" class="tier-checkbox" [(ngModel)]="tierControls.tier3" (change)="toggleTier3()" />
+            <span class="tier-name tier-clickable" (click)="toggleTier3Collapse()">
+              <svg cIcon [name]="tierCollapsed.tier3 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"
+                class="tier-toggle-icon"></svg>
+              📍 Tier 3: Vector/Features
             </span>
-          </label>
+          </div>
+          <div class="tier-layers" *ngIf="!tierCollapsed.tier3">
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.provinceBoundaries"
+                  (change)="toggleProvinceBoundaries()" />
+                <span class="layer-name">ขอบเขตจังหวัด</span>
+              </label>
+            </div>
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.districtBoundaries"
+                  (change)="toggleDistrictBoundaries()" />
+                <span class="layer-name">ขอบเขตอำเภอ</span>
+              </label>
+            </div>
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.subDistrictBoundaries"
+                  (change)="toggleSubDistrictBoundaries()" />
+                <span class="layer-name">ขอบเขตตำบล</span>
+              </label>
+            </div>
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.roads"
+                  (change)="toggleRoads()" />
+                <span class="layer-name">ถนน</span>
+              </label>
+            </div>
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.waterways"
+                  (change)="toggleWaterways()" />
+                <span class="layer-name">คลอง/ทางน้ำ</span>
+              </label>
+            </div>
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.pois"
+                  (change)="togglePOIs()" />
+                <span class="layer-name">สถานที่ (POI)</span>
+              </label>
+            </div>
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.openStreetMapSelf"
+                  (change)="toggleOpenStreetMapSelf()" />
+                <span class="layer-name">Open Street Map (Self)</span>
+              </label>
+            </div>
+          </div>
         </div>
 
-        <div class="layer-item">
-          <label class="layer-label">
-            <input type="checkbox" [(ngModel)]="layerControls.subDistrictBoundaries"
-              (change)="toggleSubDistrictBoundaries()" class="layer-checkbox" />
-            <span class="layer-name">
-
-              ขอบเขตตำบล
+        <!-- Tier 4: 3D Tiles/Buildings -->
+        <div class="tier-section">
+          <div class="tier-header">
+            <input type="checkbox" class="tier-checkbox" [(ngModel)]="tierControls.tier4" (change)="toggleTier4()" />
+            <span class="tier-name tier-clickable" (click)="toggleTier4Collapse()">
+              <svg cIcon [name]="tierCollapsed.tier4 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"
+                class="tier-toggle-icon"></svg>
+              🏢 Tier 4: 3D Tiles/Buildings
             </span>
-          </label>
-        </div>
-
-        <div class="layer-item">
-          <label class="layer-label">
-            <input type="checkbox" [(ngModel)]="layerControls.roads" (change)="toggleRoads()" class="layer-checkbox" />
-            <span class="layer-name">
-
-              ถนน
-            </span>
-          </label>
-        </div>
-
-        <div class="layer-item">
-          <label class="layer-label">
-            <input type="checkbox" [(ngModel)]="layerControls.waterways" (change)="toggleWaterways()"
-              class="layer-checkbox" />
-            <span class="layer-name">
-
-              คลอง/ทางน้ำ
-            </span>
-          </label>
-        </div>
-
-        <div class="layer-item">
-          <label class="layer-label">
-            <input type="checkbox" [(ngModel)]="layerControls.pois" (change)="togglePOIs()" class="layer-checkbox" />
-            <span class="layer-name">
-
-              สถานที่ (POI)
-            </span>
-          </label>
-        </div>
-
-        <div class="layer-item">
-          <label class="layer-label">
-            <input type="checkbox" [(ngModel)]="layerControls.thailand" (change)="toggleThailand()"
-              class="layer-checkbox" />
-            <span class="layer-name">
-
-              Open Street Map (Self)
-
-            </span>
-          </label>
+          </div>
+          <div class="tier-layers" *ngIf="!tierCollapsed.tier4">
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.buildings"
+                  (change)="toggleBuildings()" />
+                <span class="layer-name">อาคาร/สิ่งปลูกสร้าง</span>
+              </label>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -162,6 +189,5 @@
       </table>
     </c-modal-body>
   </c-modal>
-
 
 </div>

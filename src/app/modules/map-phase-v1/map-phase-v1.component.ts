@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalModule, ButtonModule, CardModule, GridModule, TableModule } from '@coreui/angular';
 import { IconModule, IconSetService } from '@coreui/icons-angular';
-import { cilMap, cilLocationPin, cilPin, cilBuilding, cilCursor } from '@coreui/icons';
+import { cilMap, cilLocationPin, cilPin, cilBuilding, cilCursor, cilChevronRight, cilChevronBottom } from '@coreui/icons';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import * as Cesium from 'cesium';
 
@@ -26,6 +26,8 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             cilPin,
             cilBuilding,
             cilCursor,
+            cilChevronRight,
+            cilChevronBottom,
         };
     }
 
@@ -38,8 +40,9 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         roads: null as Cesium.ImageryLayer | null,
         waterways: null as Cesium.ImageryLayer | null,
         pois: null as Cesium.ImageryLayer | null,
+        buildings: null as Cesium.ImageryLayer | null,
 
-        thailand: null as Cesium.ImageryLayer | null,
+        openStreetMapSelf: null as Cesium.ImageryLayer | null,
     };
 
     layerControls = {
@@ -51,7 +54,26 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         roads: false,
         waterways: false,
         pois: false,
-        thailand: false,
+        buildings: false,
+        openStreetMapSelf: false,
+    };
+
+    // Tier controls for hierarchical layer management
+    tierControls = {
+        tier0: true, // Globe/Ellipsoid (default on)
+        tier1: false, // Terrain/DEM
+        tier2: false, // Imagery layers
+        tier3: false, // Vector/Features layers
+        tier4: false, // 3D Tiles/Buildings
+    };
+
+    // Tier collapse states (true = collapsed)
+    tierCollapsed = {
+        tier0: true,
+        tier1: true,
+        tier2: true,
+        tier3: true,
+        tier4: true,
     };
 
     panelCollapsed = true;
@@ -162,7 +184,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     setupTier3_VectorFeatures() {
         const wmsUrl = `${this.geoserverUrl}/wms`;
 
-        this.layers.thailand = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand`, 'Open Street Map (Self)', 0);
+        this.layers.openStreetMapSelf = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand`, 'Open Street Map (Self)', 0);
 
         this.layers.waterways = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_waterways`, 'Waterways', 1);
 
@@ -175,6 +197,8 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         this.layers.subDistrictBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand-tambon`, 'SubDistrict Boundaries', 5);
 
         this.layers.pois = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_pois`, 'POIs (Points of Interest)', 6);
+
+        this.layers.buildings = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_buildings_a`, 'Buildings', 7);
     }
 
     private addWMSLayer(url: string, layers: string, name: string, zIndex: number = 0): Cesium.ImageryLayer | null {
@@ -252,10 +276,99 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         }
     }
 
-    toggleThailand() {
-        if (this.layers.thailand) {
-            this.layers.thailand.show = this.layerControls.thailand;
+    toggleOpenStreetMapSelf() {
+        if (this.layers.openStreetMapSelf) {
+            this.layers.openStreetMapSelf.show = this.layerControls.openStreetMapSelf;
         }
+    }
+
+    toggleBuildings() {
+        if (this.layers.buildings) {
+            this.layers.buildings.show = this.layerControls.buildings;
+        }
+    }
+
+    // Tier 0: Toggle Globe visibility
+    toggleTier0() {
+        if (this.viewer && this.viewer.scene) {
+            this.viewer.scene.globe.show = this.tierControls.tier0;
+            console.log('Tier 0 Globe:', this.tierControls.tier0 ? 'ON' : 'OFF');
+        }
+    }
+
+    // Toggle Tier 0 collapse/expand
+    toggleTier0Collapse() {
+        this.tierCollapsed.tier0 = !this.tierCollapsed.tier0;
+    }
+
+    // Tier 1: Toggle Terrain
+    toggleTier1() {
+        if (this.viewer) {
+            if (this.tierControls.tier1) {
+                // Enable terrain (you can add real terrain provider here if available)
+                // this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+                console.log('Tier 1 Terrain: ON (Ellipsoid)');
+            } else {
+                // Disable terrain (use flat ellipsoid)
+                // this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+                console.log('Tier 1 Terrain: OFF');
+            }
+        }
+    }
+
+    // Toggle Tier 1 collapse/expand
+    toggleTier1Collapse() {
+        this.tierCollapsed.tier1 = !this.tierCollapsed.tier1;
+    }
+
+    // Tier 2: Toggle all Imagery layers
+    toggleTier2() {
+        this.layerControls.openStreetMap = this.tierControls.tier2;
+        this.layerControls.googleSatellite = this.tierControls.tier2;
+
+        this.toggleOpenStreetMap();
+        this.toggleGoogleSatellite();
+    }
+
+    // Toggle Tier 2 collapse/expand
+    toggleTier2Collapse() {
+        this.tierCollapsed.tier2 = !this.tierCollapsed.tier2;
+    }
+
+    // Tier 3: Toggle all Vector/Features layers (excluding openStreetMapSelf)
+    toggleTier3() {
+        this.layerControls.provinceBoundaries = this.tierControls.tier3;
+        this.layerControls.districtBoundaries = this.tierControls.tier3;
+        this.layerControls.subDistrictBoundaries = this.tierControls.tier3;
+        this.layerControls.roads = this.tierControls.tier3;
+        this.layerControls.waterways = this.tierControls.tier3;
+        this.layerControls.pois = this.tierControls.tier3;
+        this.layerControls.openStreetMapSelf = this.tierControls.tier3;
+
+        this.toggleProvinceBoundaries();
+        this.toggleDistrictBoundaries();
+        this.toggleSubDistrictBoundaries();
+        this.toggleRoads();
+        this.toggleWaterways();
+        this.togglePOIs();
+        this.toggleOpenStreetMapSelf();
+    }
+
+    // Toggle Tier 3 collapse/expand
+    toggleTier3Collapse() {
+        this.tierCollapsed.tier3 = !this.tierCollapsed.tier3;
+    }
+
+    // Tier 4: Toggle 3D Tiles/Buildings
+    toggleTier4() {
+        this.layerControls.buildings = this.tierControls.tier4;
+        this.toggleBuildings();
+        console.log('Tier 4 3D Tiles/Buildings:', this.tierControls.tier4 ? 'ON' : 'OFF');
+    }
+
+    // Toggle Tier 4 collapse/expand
+    toggleTier4Collapse() {
+        this.tierCollapsed.tier4 = !this.tierCollapsed.tier4;
     }
 
     async search(event: any) {
@@ -431,6 +544,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
                         horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
                         scale: 0.8,
                         heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                        disableDepthTestDistance: Number.POSITIVE_INFINITY,
                     },
                     label: {
                         text: result.name,
