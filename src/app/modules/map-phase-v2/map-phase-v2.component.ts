@@ -222,11 +222,6 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             if (this.layers.pois) {
                 this.layers.pois.show = cameraHeight < this.zoomLevels.neighborhood && this.layerControls.pois;
             }
-
-            // OSM Self: Show when < 1 km (Zoom 18+)
-            if (this.layers.openStreetMapSelf) {
-                this.layers.openStreetMapSelf.show = cameraHeight < this.zoomLevels.street && this.layerControls.openStreetMapSelf;
-            }
         }
 
         // Buildings: Show when < 1 km (Zoom 18+)
@@ -351,7 +346,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     }
 
     toggleOpenStreetMapSelf() {
-        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
+        if (this.layers.openStreetMapSelf) {
+            this.layers.openStreetMapSelf.show = this.layerControls.openStreetMapSelf;
+        }
     }
 
     toggleBuildings() {
@@ -395,9 +392,11 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     toggleTier2() {
         this.layerControls.openStreetMap = this.tierControls.tier2;
         this.layerControls.googleSatellite = this.tierControls.tier2;
+        this.layerControls.openStreetMapSelf = this.tierControls.tier2;
 
         this.toggleOpenStreetMap();
         this.toggleGoogleSatellite();
+        this.toggleOpenStreetMapSelf();
     }
 
     // Toggle Tier 2 collapse/expand
@@ -405,7 +404,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.tierCollapsed.tier2 = !this.tierCollapsed.tier2;
     }
 
-    // Tier 3: Toggle all Vector/Features layers (excluding openStreetMapSelf)
+    // Tier 3: Toggle all Vector/Features layers
     toggleTier3() {
         this.layerControls.provinceBoundaries = this.tierControls.tier3;
         this.layerControls.districtBoundaries = this.tierControls.tier3;
@@ -413,7 +412,6 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.layerControls.roads = this.tierControls.tier3;
         this.layerControls.waterways = this.tierControls.tier3;
         this.layerControls.pois = this.tierControls.tier3;
-        this.layerControls.openStreetMapSelf = this.tierControls.tier3;
 
         this.toggleProvinceBoundaries();
         this.toggleDistrictBoundaries();
@@ -421,7 +419,6 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.toggleRoads();
         this.toggleWaterways();
         this.togglePOIs();
-        this.toggleOpenStreetMapSelf();
     }
 
     // Toggle Tier 3 collapse/expand
