@@ -19,20 +19,7 @@
     </div>
   </div>
 
-  <!-- Zoom Level Indicator -->
-  <div class="zoom-indicator-panel">
-    <div class="zoom-info">
-      <div class="zoom-level">{{ currentZoomLevel }}</div>
-      <div class="zoom-height">{{ (currentCameraHeight / 1000).toFixed(1) }} km</div>
-    </div>
-    <div class="zoom-presets">
-      <button *ngFor="let preset of zoomPresets" class="zoom-preset-btn" (click)="flyToZoomLevel(preset.height)"
-        [title]="preset.name">
-        <svg cIcon [name]="preset.icon" size="sm"></svg>
-        <span>{{ preset.name }}</span>
-      </button>
-    </div>
-  </div>
+
 
   <div class="layer-control-panel" [class.collapsed]="panelCollapsed">
     <div class="panel-header" (click)="togglePanel()">

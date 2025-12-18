@@ -89,9 +89,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     private cameraChangeListener: any = null;
     private lastCameraHeight: number = 0;
 
-    currentZoomLevel: string = '';
-    currentCameraHeight: number = 0;
-
     // Zoom level thresholds (in meters)
     private zoomLevels = {
         veryFar: 1000000, // >1,000 km - Globe + Imagery only
@@ -101,18 +98,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         veryClose: 20000, // 20-50 km - + POI
         extreme: 10000, // <10 km - + Buildings + OSM Self
     };
-
-    // Predefined zoom presets for quick navigation
-    zoomPresets = [
-        { name: 'ประเทศ (Country)', height: 2000000, icon: 'cil-map' },
-        { name: 'ภูมิภาค (Region)', height: 500000, icon: 'cil-map' },
-        { name: 'จังหวัด (Province)', height: 200000, icon: 'cil-map' },
-        { name: 'อำเภอ (District)', height: 100000, icon: 'cil-map' },
-        { name: 'ตำบล (Subdistrict)', height: 50000, icon: 'cil-map' },
-        { name: 'หมู่บ้าน (Village)', height: 20000, icon: 'cil-location-pin' },
-        { name: 'ถนน (Street)', height: 5000, icon: 'cil-location-pin' },
-        { name: 'อาคาร (Building)', height: 1000, icon: 'cil-building' },
-    ];
 
     fieldLabels: { [key: string]: string } = {
         PROV_NAMT: 'ชื่อจังหวัด (ไทย)',
@@ -183,8 +168,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     setupCameraListener() {
         this.cameraChangeListener = this.viewer.camera.changed.addEventListener(() => {
             const cameraHeight = this.viewer.camera.positionCartographic.height;
-            this.currentCameraHeight = cameraHeight;
-            this.currentZoomLevel = this.getZoomLevelName(cameraHeight);
 
             // Only update if height changed significantly (>10% change or >10km)
             const heightDiff = Math.abs(cameraHeight - this.lastCameraHeight);
@@ -194,24 +177,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             }
         });
         console.log('✓ Camera zoom listener initialized');
-    }
-
-    getZoomLevelName(height: number): string {
-        if (height > this.zoomLevels.veryFar) return 'ระดับโลก';
-        if (height > this.zoomLevels.far) return 'ระดับประเทศ';
-        if (height > this.zoomLevels.medium) return 'ระดับภูมิภาค';
-        if (height > this.zoomLevels.close) return 'ระดับจังหวัด';
-        if (height > this.zoomLevels.veryClose) return 'ระดับอำเภอ';
-        if (height > this.zoomLevels.extreme) return 'ระดับตำบล';
-        return 'ระดับถนน';
-    }
-
-    flyToZoomLevel(height: number) {
-        const currentPosition = this.viewer.camera.positionCartographic;
-        this.viewer.camera.flyTo({
-            destination: Cesium.Cartesian3.fromRadians(currentPosition.longitude, currentPosition.latitude, height),
-            duration: 1.5,
-        });
     }
 
     updateLayerVisibilityByZoom(cameraHeight: number) {

@@ -96,8 +96,6 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     private cameraChangeListener: any = null;
     private lastCameraHeight: number = 0;
 
-    currentCameraHeight: number = 0;
-
     // Zoom level thresholds (in meters)
     private zoomLevels = {
         veryFar: 1000000, // >1,000 km - Globe + Imagery only
@@ -179,7 +177,6 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     setupCameraListener() {
         this.cameraChangeListener = this.viewer.camera.changed.addEventListener(() => {
             const cameraHeight = this.viewer.camera.positionCartographic.height;
-            this.currentCameraHeight = cameraHeight;
 
             // Only update if height changed significantly (>10% change or >10km)
             const heightDiff = Math.abs(cameraHeight - this.lastCameraHeight);
