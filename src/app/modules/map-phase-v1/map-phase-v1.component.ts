@@ -86,6 +86,33 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     modalVisible = false;
     private handler: Cesium.ScreenSpaceEventHandler | null = null;
     private pinEntity: Cesium.Entity | null = null;
+    private cameraChangeListener: any = null;
+    private lastCameraHeight: number = 0;
+
+    currentZoomLevel: string = '';
+    currentCameraHeight: number = 0;
+
+    // Zoom level thresholds (in meters)
+    private zoomLevels = {
+        veryFar: 1000000, // >1,000 km - Globe + Imagery only
+        far: 500000, // 500-1000 km - + Province boundaries
+        medium: 100000, // 100-500 km - + District boundaries + Roads + Waterways
+        close: 50000, // 50-100 km - + SubDistrict boundaries
+        veryClose: 20000, // 20-50 km - + POI
+        extreme: 10000, // <10 km - + Buildings + OSM Self
+    };
+
+    // Predefined zoom presets for quick navigation
+    zoomPresets = [
+        { name: 'ประเทศ (Country)', height: 2000000, icon: 'cil-map' },
+        { name: 'ภูมิภาค (Region)', height: 500000, icon: 'cil-map' },
+        { name: 'จังหวัด (Province)', height: 200000, icon: 'cil-map' },
+        { name: 'อำเภอ (District)', height: 100000, icon: 'cil-map' },
+        { name: 'ตำบล (Subdistrict)', height: 50000, icon: 'cil-map' },
+        { name: 'หมู่บ้าน (Village)', height: 20000, icon: 'cil-location-pin' },
+        { name: 'ถนน (Street)', height: 5000, icon: 'cil-location-pin' },
+        { name: 'อาคาร (Building)', height: 1000, icon: 'cil-building' },
+    ];
 
     fieldLabels: { [key: string]: string } = {
         PROV_NAMT: 'ชื่อจังหวัด (ไทย)',
@@ -137,6 +164,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         this.setupTier2_Imagery();
         this.setupTier3_VectorFeatures();
         this.setupInteraction();
+        this.setupCameraListener();
 
         this.viewer.camera.flyTo({
             destination: Cesium.Cartesian3.fromDegrees(100.5018, 13.7563, 2000000),
@@ -150,6 +178,85 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     setupTier1_Terrain() {
         this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
         console.log('✓ Tier 1: Terrain (Ellipsoid) initialized');
+    }
+
+    setupCameraListener() {
+        this.cameraChangeListener = this.viewer.camera.changed.addEventListener(() => {
+            const cameraHeight = this.viewer.camera.positionCartographic.height;
+            this.currentCameraHeight = cameraHeight;
+            this.currentZoomLevel = this.getZoomLevelName(cameraHeight);
+
+            // Only update if height changed significantly (>10% change or >10km)
+            const heightDiff = Math.abs(cameraHeight - this.lastCameraHeight);
+            if (heightDiff > this.lastCameraHeight * 0.1 || heightDiff > 10000) {
+                this.lastCameraHeight = cameraHeight;
+                this.updateLayerVisibilityByZoom(cameraHeight);
+            }
+        });
+        console.log('✓ Camera zoom listener initialized');
+    }
+
+    getZoomLevelName(height: number): string {
+        if (height > this.zoomLevels.veryFar) return 'ระดับโลก';
+        if (height > this.zoomLevels.far) return 'ระดับประเทศ';
+        if (height > this.zoomLevels.medium) return 'ระดับภูมิภาค';
+        if (height > this.zoomLevels.close) return 'ระดับจังหวัด';
+        if (height > this.zoomLevels.veryClose) return 'ระดับอำเภอ';
+        if (height > this.zoomLevels.extreme) return 'ระดับตำบล';
+        return 'ระดับถนน';
+    }
+
+    flyToZoomLevel(height: number) {
+        const currentPosition = this.viewer.camera.positionCartographic;
+        this.viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromRadians(currentPosition.longitude, currentPosition.latitude, height),
+            duration: 1.5,
+        });
+    }
+
+    updateLayerVisibilityByZoom(cameraHeight: number) {
+        // Only update layers that are enabled via tier controls
+        // If user manually disabled a layer, respect that
+
+        // Province boundaries: Show when < 1,000 km
+        if (this.tierControls.tier3 && this.layers.provinceBoundaries) {
+            this.layers.provinceBoundaries.show = cameraHeight < this.zoomLevels.veryFar;
+        }
+
+        // District boundaries: Show when < 500 km
+        if (this.tierControls.tier3 && this.layers.districtBoundaries) {
+            this.layers.districtBoundaries.show = cameraHeight < this.zoomLevels.far;
+        }
+
+        // Roads and Waterways: Show when < 100 km
+        if (this.tierControls.tier3 && this.layers.roads) {
+            this.layers.roads.show = cameraHeight < this.zoomLevels.medium;
+        }
+        if (this.tierControls.tier3 && this.layers.waterways) {
+            this.layers.waterways.show = cameraHeight < this.zoomLevels.medium;
+        }
+
+        // SubDistrict boundaries: Show when < 50 km
+        if (this.tierControls.tier3 && this.layers.subDistrictBoundaries) {
+            this.layers.subDistrictBoundaries.show = cameraHeight < this.zoomLevels.close;
+        }
+
+        // POI: Show when < 20 km
+        if (this.tierControls.tier3 && this.layers.pois) {
+            this.layers.pois.show = cameraHeight < this.zoomLevels.veryClose;
+        }
+
+        // Buildings: Show when < 10 km
+        if (this.tierControls.tier4 && this.layers.buildings) {
+            this.layers.buildings.show = cameraHeight < this.zoomLevels.extreme;
+        }
+
+        // OSM Self: Show when < 10 km (high detail)
+        if (this.tierControls.tier3 && this.layers.openStreetMapSelf) {
+            this.layers.openStreetMapSelf.show = cameraHeight < this.zoomLevels.extreme;
+        }
+
+        console.log(`📏 Zoom updated: ${(cameraHeight / 1000).toFixed(1)} km`);
     }
 
     setupTier2_Imagery() {
@@ -609,6 +716,10 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     ngOnDestroy(): void {
         if (this.searchTimeout) {
             clearTimeout(this.searchTimeout);
+        }
+        if (this.cameraChangeListener) {
+            this.cameraChangeListener();
+            this.cameraChangeListener = null;
         }
         this.viewer?.destroy();
         if (this.handler) {
