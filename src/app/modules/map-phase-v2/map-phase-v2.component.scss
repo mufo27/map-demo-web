@@ -610,3 +610,51 @@
         border-radius: 2px !important;
     }
 }
+
+// Tier information display
+.tier-info {
+    background-color: rgba(0, 0, 0, 0.03);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 8px 0 8px 28px;
+    font-size: 0.85rem;
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            color: #5f6368;
+            font-weight: 500;
+            min-width: 100px;
+        }
+
+        .info-value {
+            color: #3c4043;
+            text-align: right;
+            flex: 1;
+        }
+    }
+}
+
+// Layer metadata display
+.layer-meta {
+    font-size: 0.75rem;
+    color: #5f6368;
+    margin-top: 4px;
+    margin-left: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .meta-item {
+        strong {
+            color: #3c4043;
+        }
+    }
+}

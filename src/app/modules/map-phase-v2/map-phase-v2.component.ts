@@ -7,6 +7,13 @@ import { cilMap, cilLocationPin, cilPin, cilBuilding, cilCursor, cilChevronRight
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import * as Cesium from 'cesium';
 
+interface LayerInfo {
+    name: string;
+    dataName: string;
+    serviceSource: string;
+    format: string;
+}
+
 @Component({
     selector: 'app-map-phase-v2',
     standalone: true,
@@ -115,6 +122,115 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         Shape_Area: 'พื้นที่',
         NAME: 'ชื่อ',
         name: 'ชื่อ',
+    };
+
+    tierInfo: { [key: string]: { info: LayerInfo; layers?: LayerInfo[] } } = {
+        tier0: {
+            info: {
+                name: 'Tier 0: Globe (Ellipsoid)',
+                dataName: 'โลกพื้นฐาน',
+                serviceSource: 'CesiumJS',
+                format: '—',
+            },
+        },
+        tier1: {
+            info: {
+                name: 'Tier 1: Terrain',
+                dataName: 'DEM (ความสูง)',
+                serviceSource: 'Terrain Server / COG / CTB',
+                format: 'Quantized-mesh / Heightmap',
+            },
+        },
+        tier2: {
+            info: {
+                name: 'Tier 2: Imagery',
+                dataName: 'Orthophoto, แผนที่',
+                serviceSource: 'GeoServer WMTS / WMS',
+                format: 'JPEG / PNG',
+            },
+            layers: [
+                {
+                    name: 'Open Street Map',
+                    dataName: 'แผนที่ถนน',
+                    serviceSource: 'OpenStreetMap.org',
+                    format: 'PNG Tiles',
+                },
+                {
+                    name: 'Google Satellite',
+                    dataName: 'ภาพถ่ายดาวเทียม',
+                    serviceSource: 'Google Maps API',
+                    format: 'JPEG Tiles',
+                },
+                {
+                    name: 'Open Street Map (Self)',
+                    dataName: 'แผนที่ถนน (โฮสต์เอง)',
+                    serviceSource: 'GeoServer WMS',
+                    format: 'PNG',
+                },
+            ],
+        },
+        tier3: {
+            info: {
+                name: 'Tier 3: Vector / Features',
+                dataName: 'ถนน, เขต, POI',
+                serviceSource: 'GeoServer WFS / API',
+                format: 'GeoJSON / WFS',
+            },
+            layers: [
+                {
+                    name: 'ขอบเขตจังหวัด',
+                    dataName: 'ขอบเขตจังหวัด',
+                    serviceSource: 'GeoServer WMS',
+                    format: 'WMS',
+                },
+                {
+                    name: 'ขอบเขตอำเภอ',
+                    dataName: 'ขอบเขตอำเภอ',
+                    serviceSource: 'GeoServer WMS',
+                    format: 'WMS',
+                },
+                {
+                    name: 'ขอบเขตตำบล',
+                    dataName: 'ขอบเขตตำบล',
+                    serviceSource: 'GeoServer WMS',
+                    format: 'WMS',
+                },
+                {
+                    name: 'ถนน',
+                    dataName: 'ถนน',
+                    serviceSource: 'GeoServer WMS',
+                    format: 'WMS',
+                },
+                {
+                    name: 'คลอง/ทางน้ำ',
+                    dataName: 'คลอง/ทางน้ำ',
+                    serviceSource: 'GeoServer WMS',
+                    format: 'WMS',
+                },
+                {
+                    name: 'สถานที่ (POI)',
+                    dataName: 'สถานที่สำคัญ',
+                    serviceSource: 'GeoServer WMS',
+                    format: 'WMS',
+                },
+            ],
+        },
+        tier4: {
+            info: {
+                name: 'Tier 4: 3D Tiles / Buildings',
+                dataName: 'อาคาร, โมเดล 3D',
+                serviceSource: 'Static Server / SAN',
+                format: '3D Tiles (.b3dm, .glb)',
+            },
+            layers: [
+                {
+                    name: 'อาคาร/สิ่งปลูกสร้าง',
+                    dataName: 'อาคาร 3D',
+                    serviceSource: 'GeoServer WMS',
+                    format: 'WMS',
+                },
+            ],
+        },
     };
 
     togglePanel() {
