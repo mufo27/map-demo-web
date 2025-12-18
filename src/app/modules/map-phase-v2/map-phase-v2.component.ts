@@ -34,23 +34,16 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     private layers = {
         openStreetMap: null as Cesium.ImageryLayer | null,
         googleSatellite: null as Cesium.ImageryLayer | null,
-
-        // Tier 3 - Vector layers (DataSource)
-        provinceBoundaries: null as Cesium.GeoJsonDataSource | null,
-        districtBoundaries: null as Cesium.GeoJsonDataSource | null,
-        subDistrictBoundaries: null as Cesium.GeoJsonDataSource | null,
-        roads: null as Cesium.GeoJsonDataSource | null,
-        waterways: null as Cesium.GeoJsonDataSource | null,
-        pois: null as Cesium.GeoJsonDataSource | null,
-
-        // Tier 4 - Buildings (still WMS for now)
+        provinceBoundaries: null as Cesium.ImageryLayer | null,
+        districtBoundaries: null as Cesium.ImageryLayer | null,
+        subDistrictBoundaries: null as Cesium.ImageryLayer | null,
+        roads: null as Cesium.ImageryLayer | null,
+        waterways: null as Cesium.ImageryLayer | null,
+        pois: null as Cesium.ImageryLayer | null,
         buildings: null as Cesium.ImageryLayer | null,
+
         openStreetMapSelf: null as Cesium.ImageryLayer | null,
     };
-
-    // Track which layers have been loaded (for lazy loading optimization)
-    private loadedLayers = new Set<string>();
-    private loadingLayers = new Set<string>();
 
     layerControls = {
         openStreetMap: false,
@@ -95,7 +88,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     private pinEntity: Cesium.Entity | null = null;
     private cameraChangeListener: any = null;
     private lastCameraHeight: number = 0;
-    currentCameraHeight: number = 2000000;
+    currentCameraHeight: number = 2000000; // Default start height
 
     // Zoom level thresholds (in meters) - Aligned with Google Maps
     private zoomLevels = {
@@ -103,10 +96,8 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         region: 75000, // 75 km - District level (Zoom 8-10)
         city: 10000, // 10 km - Sub-district level (Zoom 11-13)
         neighborhood: 2500, // 2.5 km - POI level (Zoom 16+)
-        street: 1000, // 1 km - Building level (Zoom 18+) + OSM Self
+        street: 1000, // 1 km - Building level (Zoom 18+)
     };
-
-    // Predefined zoom presets for quick navigation
 
     fieldLabels: { [key: string]: string } = {
         PROV_NAMT: 'ชื่อจังหวัด (ไทย)',
@@ -202,37 +193,19 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         const showDistrict = cameraHeight <= this.zoomLevels.country && cameraHeight > this.zoomLevels.region;
         const showSubDistrict = cameraHeight <= this.zoomLevels.region && cameraHeight > this.zoomLevels.city;
 
-        // Province: Auto-load and show at country level (>300km) AND when checkbox enabled
-        if (showProvince && this.layerControls.provinceBoundaries) {
-            if (!this.layers.provinceBoundaries) {
-                this.loadVectorLayer('th_province', 'provinceBoundaries', 'Province Boundaries', '#FF6B6B', 2);
-            } else {
-                this.layers.provinceBoundaries.show = true;
-            }
-        } else if (this.layers.provinceBoundaries) {
-            this.layers.provinceBoundaries.show = false;
+        // Province: Show at country level (>300km) AND when checkbox enabled
+        if (this.layers.provinceBoundaries) {
+            this.layers.provinceBoundaries.show = showProvince && this.layerControls.provinceBoundaries;
         }
 
-        // District: Auto-load and show at region level (75-300km) AND when checkbox enabled
-        if (showDistrict && this.layerControls.districtBoundaries) {
-            if (!this.layers.districtBoundaries) {
-                this.loadVectorLayer('thailand-amphoe', 'districtBoundaries', 'District Boundaries', '#4ECDC4', 1.5);
-            } else {
-                this.layers.districtBoundaries.show = true;
-            }
-        } else if (this.layers.districtBoundaries) {
-            this.layers.districtBoundaries.show = false;
+        // District: Show at region level (75-300km) AND when checkbox enabled
+        if (this.layers.districtBoundaries) {
+            this.layers.districtBoundaries.show = showDistrict && this.layerControls.districtBoundaries;
         }
 
-        // Sub-district: Auto-load and show at city level (10-75km) AND when checkbox enabled
-        if (showSubDistrict && this.layerControls.subDistrictBoundaries) {
-            if (!this.layers.subDistrictBoundaries) {
-                this.loadVectorLayer('thailand-tambon', 'subDistrictBoundaries', 'SubDistrict Boundaries', '#95E1D3', 1);
-            } else {
-                this.layers.subDistrictBoundaries.show = true;
-            }
-        } else if (this.layers.subDistrictBoundaries) {
-            this.layers.subDistrictBoundaries.show = false;
+        // Sub-district: Show at city level (10-75km) AND when checkbox enabled
+        if (this.layers.subDistrictBoundaries) {
+            this.layers.subDistrictBoundaries.show = showSubDistrict && this.layerControls.subDistrictBoundaries;
         }
 
         // Other layers respect tier controls AND user checkboxes
@@ -294,80 +267,23 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     }
 
     setupTier3_VectorFeatures() {
-        console.log('✓ Tier 3: Vector layers configured (Lazy Loading enabled)');
-
-        // Don't load vector layers immediately - they will load when user toggles them on
-        // This significantly improves initial load time
-
-        // Buildings and OSM Self remain as WMS (Tier 4)
         const wmsUrl = `${this.geoserverUrl}/wms`;
-        this.layers.buildings = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_buildings_a`, 'Buildings', 7);
+
         this.layers.openStreetMapSelf = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand`, 'Open Street Map (Self)', 0);
-    }
 
-    async loadVectorLayer(
-        layerName: string,
-        propertyName: keyof typeof this.layers,
-        displayName: string,
-        color: string,
-        lineWidth: number = 2,
-        isPoint: boolean = false
-    ) {
-        const layerKey = `${propertyName}`;
+        this.layers.waterways = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_waterways`, 'Waterways', 1);
 
-        // Prevent duplicate loading
-        if (this.loadedLayers.has(layerKey) || this.loadingLayers.has(layerKey)) {
-            console.log(`⏭️ ${displayName} already loaded/loading`);
-            if (this.layers[propertyName]) {
-                (this.layers[propertyName] as any).show = true;
-            }
-            return;
-        }
+        this.layers.roads = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_roads`, 'Roads', 2);
 
-        this.loadingLayers.add(layerKey);
+        this.layers.provinceBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:th_province`, 'Province Boundaries', 3);
 
-        try {
-            const wfsUrl = `${this.geoserverUrl}/wfs`;
-            const params = new URLSearchParams({
-                service: 'WFS',
-                version: '2.0.0',
-                request: 'GetFeature',
-                typeName: `${this.workspace}:${layerName}`,
-                outputFormat: 'application/json',
-                srsName: 'EPSG:4326',
-                maxFeatures: '2000', // Limit for performance
-            });
+        this.layers.districtBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand-amphoe`, 'District Boundaries', 4);
 
-            const url = `${wfsUrl}?${params.toString()}`;
-            console.log(`🔄 Loading: ${displayName}...`);
+        this.layers.subDistrictBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand-tambon`, 'SubDistrict Boundaries', 5);
 
-            const dataSource = await Cesium.GeoJsonDataSource.load(url, {
-                stroke: Cesium.Color.fromCssColorString(color),
-                strokeWidth: lineWidth,
-                fill: Cesium.Color.fromCssColorString(color).withAlpha(0.1),
-                markerColor: isPoint ? Cesium.Color.fromCssColorString(color) : undefined,
-                markerSize: isPoint ? 8 : undefined,
-                clampToGround: true,
-            });
+        this.layers.pois = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_pois`, 'POIs (Points of Interest)', 6);
 
-            dataSource.show = true;
-            await this.viewer.dataSources.add(dataSource);
-
-            (this.layers as any)[propertyName] = dataSource;
-            this.loadedLayers.add(layerKey);
-            this.loadingLayers.delete(layerKey);
-
-            console.log(`✓ ${displayName} (${dataSource.entities.values.length} features)`);
-
-            // Re-evaluate visibility in case user zoomed away while loading
-            if (this.viewer && this.viewer.camera) {
-                const currentHeight = this.viewer.camera.positionCartographic.height;
-                this.updateLayerVisibilityByZoom(currentHeight);
-            }
-        } catch (error) {
-            console.error(`✗ Error: ${displayName}`, error);
-            this.loadingLayers.delete(layerKey);
-        }
+        this.layers.buildings = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_buildings_a`, 'Buildings', 7);
     }
 
     private addWMSLayer(url: string, layers: string, name: string, zIndex: number = 0): Cesium.ImageryLayer | null {
@@ -768,12 +684,6 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             this.cameraChangeListener();
             this.cameraChangeListener = null;
         }
-
-        // Cleanup vector data sources
-        if (this.viewer && this.viewer.dataSources) {
-            this.viewer.dataSources.removeAll();
-        }
-
         this.viewer?.destroy();
         if (this.handler) {
             this.handler.destroy();

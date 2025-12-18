@@ -403,29 +403,102 @@
 // Zoom Level Indicator Panel (Right Side)
 .zoom-indicator-panel {
     position: absolute;
-    top: 100px;
+    top: 20px;
     right: 20px;
     background: #fff;
     border-radius: 2px;
     box-shadow: rgba(0, 0, 0, 0.3) 0px 1px 4px -1px;
     z-index: 1000;
-    width: 180px;
+    min-width: 220px;
+    max-width: 280px;
 }
 
 .zoom-info {
     padding: 12px 16px;
+    border-bottom: 1px solid #e8eaed;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    text-align: center;
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+}
+
+.zoom-level {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    opacity: 0.95;
 }
 
 .zoom-height {
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 700;
     letter-spacing: 0.5px;
-    margin: 0;
+}
+
+.zoom-presets {
+    padding: 8px;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 2px;
+    }
+}
+
+.zoom-preset-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    background: white;
+    border: 1px solid #e8eaed;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #3c4043;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-align: left;
+
+    &:hover {
+        background: #f8f9fa;
+        border-color: #1a73e8;
+        color: #1a73e8;
+        transform: translateX(-2px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    &:active {
+        transform: scale(0.98);
+    }
+
+    svg {
+        flex-shrink: 0;
+        color: #5f6368;
+        transition: color 0.2s ease;
+    }
+
+    &:hover svg {
+        color: #1a73e8;
+    }
+
+    span {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &:last-child {
+        margin-bottom: 0;
+    }
 }
 
 .tier-clickable {
