@@ -117,6 +117,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         street: 1000, // 1 km - Building level (Zoom 18+)
     };
 
+    // Field labels
     fieldLabels: { [key: string]: string } = {
         PROV_NAMT: 'ชื่อจังหวัด (ไทย)',
         PROV_NAME: 'ชื่อจังหวัด (อังกฤษ)',
@@ -135,15 +136,13 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         name: 'ชื่อ',
     };
 
-    togglePanel() {
-        this.panelCollapsed = !this.panelCollapsed;
-    }
-
+    // After view init
     ngAfterViewInit(): void {
         (window as any).CESIUM_BASE_URL = '/assets/cesium/';
         this.initCesium();
     }
 
+    // Init Cesium
     initCesium() {
         this.viewer = new Cesium.Viewer('cesiumContainer', {
             timeline: false,
@@ -174,15 +173,18 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         });
     }
 
+    // Setup tier 0 globe
     setupTier0_Globe() {
         console.log('✓ Tier 0: Globe (Ellipsoid) initialized');
     }
 
+    // Setup tier 1 terrain
     setupTier1_Terrain() {
         this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
         console.log('✓ Tier 1: Terrain (Ellipsoid) initialized');
     }
 
+    // Setup tier 2 imagery
     setupTier2_Imagery() {
         console.log('✓ Tier 2: Using Cesium default base map (Bing Maps)');
 
@@ -212,6 +214,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         }
     }
 
+    // Setup tier 3 vector features
     setupTier3_VectorFeatures() {
         const wmsUrl = `${this.geoserverUrl}/wms`;
 
@@ -252,6 +255,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         this.layers.buildings = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_buildings_a`, 'Buildings', 7);
     }
 
+    // Add WMS layer
     private addWMSLayer(url: string, layers: string, name: string, zIndex: number = 0): Cesium.ImageryLayer | null {
         try {
             const provider = new Cesium.WebMapServiceImageryProvider({
@@ -279,6 +283,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         }
     }
 
+    // Setup camera listener
     setupCameraListener() {
         this.cameraChangeListener = this.viewer.camera.changed.addEventListener(() => {
             const cameraHeight = this.viewer.camera.positionCartographic.height;
@@ -294,6 +299,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         console.log('✓ Camera zoom listener initialized');
     }
 
+    // Update layer visibility by zoom
     updateLayerVisibilityByZoom(cameraHeight: number) {
         // Google Maps aligned zoom levels:
         // Province: > 300km (Zoom 5-7)
@@ -346,6 +352,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         console.log(`📏 Zoom updated: ${(cameraHeight / 1000).toFixed(1)} km`);
     }
 
+    // Search
     async search(event: any) {
         const query = event.query;
         if (!query || query.trim().length === 0) {
@@ -361,6 +368,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         }
     }
 
+    // Search GeoServer
     async searchGeoServer(query: string): Promise<any[]> {
         const results: any[] = [];
 
@@ -401,6 +409,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         return results.slice(0, 10);
     }
 
+    // Search layer
     async searchLayer(
         layerName: string,
         query: string,
@@ -496,6 +505,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         }
     }
 
+    // Select search result
     selectSearchResult(event: any) {
         const result = event.value;
         if (!result) return;
@@ -551,6 +561,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         console.log('Flying to:', result.name, result);
     }
 
+    // Clear search
     clearSearch() {
         this.searchQuery = null;
         this.suggestions = [];
@@ -560,6 +571,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         }
     }
 
+    // Get type label
     getTypeLabel(type: string): string {
         const labels: { [key: string]: string } = {
             province: 'จังหวัด',
@@ -570,6 +582,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         return labels[type] || type;
     }
 
+    // Get type icon
     getTypeIcon(type: string): string {
         const icons: { [key: string]: string } = {
             province: 'cil-map',
@@ -580,6 +593,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         return icons[type] || 'cil-cursor';
     }
 
+    // Create pin icon
     private createPinIcon(): string {
         const canvas = document.createElement('canvas');
         canvas.width = 48;
@@ -605,6 +619,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         return canvas.toDataURL();
     }
 
+    // Cleanup
     ngOnDestroy(): void {
         if (this.searchTimeout) {
             clearTimeout(this.searchTimeout);
@@ -619,6 +634,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         }
     }
 
+    // Setup interaction
     setupInteraction() {
         this.handler = new Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
 
@@ -660,14 +676,17 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
     }
 
+    // Handle modal change
     handleModalChange(event: boolean) {
         this.modalVisible = event;
     }
 
+    // Get label
     getLabel(key: any): string {
         return this.fieldLabels[String(key)] || String(key);
     }
 
+    // Get display items
     getDisplayItems(): { key: string; value: any; label: string }[] {
         if (!this.selectedFeature?.properties) return [];
 
@@ -681,6 +700,11 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             if (b.key === 'Area_km2_') return -1;
             return 0;
         });
+    }
+
+    // Toggle panel collapse/expand
+    togglePanel() {
+        this.panelCollapsed = !this.panelCollapsed;
     }
 
     // Toggle Tier 0 collapse/expand
@@ -762,49 +786,58 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         console.log('Tier 4 3D Tiles/Buildings:', this.tierControls.tier4 ? 'ON' : 'OFF');
     }
 
-    // Layer toggle methods
+    // Toggle OpenStreetMap layer
     toggleOpenStreetMap() {
         if (this.layers.openStreetMap) {
             this.layers.openStreetMap.show = this.layerControls.openStreetMap;
         }
     }
 
+    // Toggle Google Satellite layer
     toggleGoogleSatellite() {
         if (this.layers.googleSatellite) {
             this.layers.googleSatellite.show = this.layerControls.googleSatellite;
         }
     }
 
+    // Toggle OpenStreetMap Self layer
     toggleOpenStreetMapSelf() {
         if (this.layers.openStreetMapSelf) {
             this.layers.openStreetMapSelf.show = this.layerControls.openStreetMapSelf;
         }
     }
 
+    // Toggle Province Boundaries layer
     toggleProvinceBoundaries() {
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
+    // Toggle District Boundaries layer
     toggleDistrictBoundaries() {
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
+    // Toggle SubDistrict Boundaries layer
     toggleSubDistrictBoundaries() {
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
+    // Toggle Roads layer
     toggleRoads() {
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
+    // Toggle Waterways layer
     toggleWaterways() {
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
+    // Toggle POIs layer
     togglePOIs() {
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
+    // Toggle Buildings layer
     toggleBuildings() {
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
