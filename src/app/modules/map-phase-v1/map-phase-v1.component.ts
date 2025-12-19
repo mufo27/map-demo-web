@@ -160,9 +160,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     setupTier0_Globe() {}
 
     // Setup tier 1 terrain
-    setupTier1_Terrain() {
-        this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
-    }
+    setupTier1_Terrain() {}
 
     // Setup tier 2 imagery
     setupTier2_Imagery() {
@@ -668,11 +666,8 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         }
     }
 
-    // Tier 1: Toggle Terrain
-    toggleTier1() {
-        if (this.viewer) {
-        }
-    }
+    // Tier 1: Toggle Terrain layers
+    toggleTier1() {}
 
     // Tier 2: Toggle all Imagery layers
     toggleTier2() {

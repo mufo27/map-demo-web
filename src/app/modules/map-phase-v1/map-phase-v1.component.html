@@ -46,7 +46,14 @@
         <div class="tier-section">
           <div class="tier-header">
             <input type="checkbox" class="tier-checkbox" [(ngModel)]="tierControls.tier1" (change)="toggleTier1()" />
-            <span class="tier-name">🗻 Tier 1: Terrain (DEM)</span>
+            <span class="tier-name tier-clickable" (click)="toggleTier1Collapse()">
+              <svg cIcon [name]="tierCollapsed.tier1 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"
+                class="tier-toggle-icon"></svg>
+              🗻 Tier 1: Terrain (DEM)
+            </span>
+          </div>
+          <div class="tier-layers" *ngIf="!tierCollapsed.tier1">
+            <!-- Placeholder for future terrain layers if needed -->
           </div>
         </div>
 
