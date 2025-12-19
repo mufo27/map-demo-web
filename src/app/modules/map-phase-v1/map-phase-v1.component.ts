@@ -3,32 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalModule, ButtonModule, CardModule, GridModule, TableModule } from '@coreui/angular';
 import { IconModule, IconSetService } from '@coreui/icons-angular';
-import {
-    cilMap,
-    cilLocationPin,
-    cilPin,
-    cilBuilding,
-    cilCursor,
-    cilChevronRight,
-    cilChevronBottom,
-} from '@coreui/icons';
+import { cilMap, cilLocationPin, cilPin, cilBuilding, cilCursor, cilChevronRight, cilChevronBottom } from '@coreui/icons';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import * as Cesium from 'cesium';
 
 @Component({
     selector: 'app-map-phase-v1',
     standalone: true,
-    imports: [
-        CommonModule,
-        FormsModule,
-        ModalModule,
-        ButtonModule,
-        CardModule,
-        GridModule,
-        TableModule,
-        AutoCompleteModule,
-        IconModule,
-    ],
+    imports: [CommonModule, FormsModule, ModalModule, ButtonModule, CardModule, GridModule, TableModule, AutoCompleteModule, IconModule],
     templateUrl: './map-phase-v1.component.html',
     styleUrl: './map-phase-v1.component.scss',
 })
@@ -165,6 +147,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         this.setupTier1_Terrain();
         this.setupTier2_Imagery();
         this.setupTier3_VectorFeatures();
+        this.setupTier4_3DTiles();
         this.setupInteraction();
         this.setupCameraListener();
 
@@ -174,19 +157,17 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     }
 
     // Setup tier 0 globe
-    setupTier0_Globe() {
-        console.log('✓ Tier 0: Globe (Ellipsoid) initialized');
-    }
+    setupTier0_Globe() {}
 
     // Setup tier 1 terrain
     setupTier1_Terrain() {
         this.viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
-        console.log('✓ Tier 1: Terrain (Ellipsoid) initialized');
     }
 
     // Setup tier 2 imagery
     setupTier2_Imagery() {
-        console.log('✓ Tier 2: Using Cesium default base map (Bing Maps)');
+        const wmsUrl = `${this.geoserverUrl}/wms`;
+        this.layers.openStreetMapSelf = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand`, 'Open Street Map (Self)', 0);
 
         try {
             const provider = new Cesium.OpenStreetMapImageryProvider({
@@ -195,7 +176,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             this.layers.openStreetMap = this.viewer.imageryLayers.addImageryProvider(provider);
             this.layers.openStreetMap.show = this.layerControls.openStreetMap;
             this.viewer.imageryLayers.raiseToTop(this.layers.openStreetMap);
-            console.log('✓ Tier 2: OpenStreetMap loaded (optional)');
         } catch (error) {
             console.error('✗ Error loading OSM:', error);
         }
@@ -208,7 +188,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             this.layers.googleSatellite = this.viewer.imageryLayers.addImageryProvider(provider);
             this.layers.googleSatellite.show = this.layerControls.googleSatellite;
             this.viewer.imageryLayers.raiseToTop(this.layers.googleSatellite);
-            console.log('✓ Tier 2: Google Maps Satellite loaded');
         } catch (error) {
             console.error('✗ Error loading Google Maps:', error);
         }
@@ -218,40 +197,22 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     setupTier3_VectorFeatures() {
         const wmsUrl = `${this.geoserverUrl}/wms`;
 
-        this.layers.openStreetMapSelf = this.addWMSLayer(
-            wmsUrl,
-            `${this.workspace}:thailand`,
-            'Open Street Map (Self)',
-            0
-        );
-
         this.layers.waterways = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_waterways`, 'Waterways', 1);
 
         this.layers.roads = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_roads`, 'Roads', 2);
 
-        this.layers.provinceBoundaries = this.addWMSLayer(
-            wmsUrl,
-            `${this.workspace}:th_province`,
-            'Province Boundaries',
-            3
-        );
+        this.layers.provinceBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:th_province`, 'Province Boundaries', 3);
 
-        this.layers.districtBoundaries = this.addWMSLayer(
-            wmsUrl,
-            `${this.workspace}:thailand-amphoe`,
-            'District Boundaries',
-            4
-        );
+        this.layers.districtBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand-amphoe`, 'District Boundaries', 4);
 
-        this.layers.subDistrictBoundaries = this.addWMSLayer(
-            wmsUrl,
-            `${this.workspace}:thailand-tambon`,
-            'SubDistrict Boundaries',
-            5
-        );
+        this.layers.subDistrictBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand-tambon`, 'SubDistrict Boundaries', 5);
 
         this.layers.pois = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_pois`, 'POIs (Points of Interest)', 6);
+    }
 
+    // Setup tier 4 3D tiles/buildings
+    setupTier4_3DTiles() {
+        const wmsUrl = `${this.geoserverUrl}/wms`;
         this.layers.buildings = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_buildings_a`, 'Buildings', 7);
     }
 
@@ -275,7 +236,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
                 this.viewer.imageryLayers.raise(layer);
             }
 
-            console.log(`✓ Tier 3: ${name} loaded (WMS) at z-index ${zIndex}`);
             return layer;
         } catch (error) {
             console.error(`✗ Error loading ${name}:`, error);
@@ -296,7 +256,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
                 this.updateLayerVisibilityByZoom(cameraHeight);
             }
         });
-        console.log('✓ Camera zoom listener initialized');
     }
 
     // Update layer visibility by zoom
@@ -348,8 +307,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         if (this.tierControls.tier4 && this.layers.buildings) {
             this.layers.buildings.show = cameraHeight < this.zoomLevels.street && this.layerControls.buildings;
         }
-
-        console.log(`📏 Zoom updated: ${(cameraHeight / 1000).toFixed(1)} km`);
     }
 
     // Search
@@ -373,31 +330,13 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         const results: any[] = [];
 
         try {
-            const provinceResults = await this.searchLayer(
-                `${this.workspace}:th_province`,
-                query,
-                'province',
-                'PROV_NAMT',
-                'PROV_NAME'
-            );
+            const provinceResults = await this.searchLayer(`${this.workspace}:th_province`, query, 'province', 'PROV_NAMT', 'PROV_NAME');
             results.push(...provinceResults);
 
-            const districtResults = await this.searchLayer(
-                `${this.workspace}:thailand-amphoe`,
-                query,
-                'district',
-                'AMP_NAME_T',
-                'AMP_NAME_E'
-            );
+            const districtResults = await this.searchLayer(`${this.workspace}:thailand-amphoe`, query, 'district', 'AMP_NAME_T', 'AMP_NAME_E');
             results.push(...districtResults);
 
-            const subDistrictResults = await this.searchLayer(
-                `${this.workspace}:thailand-tambon`,
-                query,
-                'subdistrict',
-                'T_NAME_T',
-                'T_NAME_E'
-            );
+            const subDistrictResults = await this.searchLayer(`${this.workspace}:thailand-tambon`, query, 'subdistrict', 'T_NAME_T', 'T_NAME_E');
             results.push(...subDistrictResults);
 
             const poiResults = await this.searchLayer(`${this.workspace}:gis_osm_pois`, query, 'poi', 'name', 'name');
@@ -410,13 +349,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     }
 
     // Search layer
-    async searchLayer(
-        layerName: string,
-        query: string,
-        type: string,
-        thField: string,
-        enField: string
-    ): Promise<any[]> {
+    async searchLayer(layerName: string, query: string, type: string, thField: string, enField: string): Promise<any[]> {
         try {
             const wfsUrl = `${this.geoserverUrl}/wfs`;
             const filter = `${thField} LIKE '%${query}%' OR ${enField} LIKE '%${query}%'`;
@@ -433,60 +366,60 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             });
 
             const fullUrl = `${wfsUrl}?${params.toString()}`;
-            console.log('🔍 Search Request:', {
-                layerName,
-                query,
-                filter,
-                url: fullUrl,
-            });
 
             const response = await fetch(fullUrl);
 
-            console.log('📡 Response Status:', response.status, response.statusText);
-
+            // Check if response is ok
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ WFS Error Response:', errorText);
                 throw new Error(`WFS request failed: ${response.statusText}`);
             }
 
+            // Parse response
             const data = await response.json();
-            console.log('📦 WFS Response Data:', data);
 
+            // Check if features exist
             if (!data.features || data.features.length === 0) {
                 console.warn('⚠️ No features found for query:', query);
                 return [];
             }
 
-            console.log(`✅ Found ${data.features.length} features`);
-
+            // Map features to results
             return data.features.map((feature: any) => {
+                // Get properties and geometry
                 const props = feature.properties;
+                // Get geometry
                 const geometry = feature.geometry;
 
-                console.log('📄 Feature properties:', props);
                 let longitude = 0;
                 let latitude = 0;
                 let height = 50000;
+
+                // Calculate center point
                 if (geometry.type === 'Point') {
                     [longitude, latitude] = geometry.coordinates;
+
+                    // Calculate center point of polygon
                 } else if (geometry.type === 'Polygon') {
                     const coords = geometry.coordinates[0];
                     longitude = coords.reduce((sum: number, c: any) => sum + c[0], 0) / coords.length;
                     latitude = coords.reduce((sum: number, c: any) => sum + c[1], 0) / coords.length;
                     height = type === 'province' ? 200000 : 100000;
+
+                    // Calculate center point of multi-polygon
                 } else if (geometry.type === 'MultiPolygon') {
                     const coords = geometry.coordinates[0][0];
                     longitude = coords.reduce((sum: number, c: any) => sum + c[0], 0) / coords.length;
                     latitude = coords.reduce((sum: number, c: any) => sum + c[1], 0) / coords.length;
                     height = type === 'province' ? 200000 : 100000;
                 }
+
                 const nameTh = props[thField] || '';
                 const nameEn = props[enField] || '';
                 const displayName = nameTh || nameEn;
 
-                console.log(`📌 Parsed: ${displayName} at (${longitude}, ${latitude})`);
-
+                // Return result
                 return {
                     name: displayName,
                     nameTh,
@@ -507,23 +440,21 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
 
     // Select search result
     selectSearchResult(event: any) {
+        // Get result
         const result = event.value;
         if (!result) return;
 
-        console.log('🎯 Selected result:', result);
-        console.log('🎯 Result type:', result.type);
-        console.log('🎯 Result typeLabel:', result.typeLabel);
-        console.log('🎯 Is POI?', result.type === 'poi' || result.typeLabel === 'สถานที่');
-
+        // Remove previous pin
         if (this.pinEntity) {
             this.viewer.entities.remove(this.pinEntity);
             this.pinEntity = null;
         }
 
+        // Check if result is POI
         const isPOI = result.type === 'poi' || result.typeLabel === 'สถานที่';
 
+        // Add pin
         if (isPOI) {
-            console.log('📍 Creating pin marker for POI');
             try {
                 this.pinEntity = this.viewer.entities.add({
                     position: Cesium.Cartesian3.fromDegrees(result.longitude, result.latitude),
@@ -547,18 +478,16 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
                         disableDepthTestDistance: Number.POSITIVE_INFINITY,
                     },
                 });
-                console.log('✅ Pin marker created successfully');
             } catch (error) {
                 console.error('❌ Error creating pin marker:', error);
             }
         }
 
+        // Fly to result
         this.viewer.camera.flyTo({
             destination: Cesium.Cartesian3.fromDegrees(result.longitude, result.latitude, isPOI ? 5000 : result.height),
             duration: 2,
         });
-
-        console.log('Flying to:', result.name, result);
     }
 
     // Clear search
@@ -736,18 +665,12 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     toggleTier0() {
         if (this.viewer && this.viewer.scene) {
             this.viewer.scene.globe.show = this.tierControls.tier0;
-            console.log('Tier 0 Globe:', this.tierControls.tier0 ? 'ON' : 'OFF');
         }
     }
 
     // Tier 1: Toggle Terrain
     toggleTier1() {
         if (this.viewer) {
-            if (this.tierControls.tier1) {
-                console.log('Tier 1 Terrain: ON (Ellipsoid)');
-            } else {
-                console.log('Tier 1 Terrain: OFF');
-            }
         }
     }
 
@@ -783,7 +706,6 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     toggleTier4() {
         this.layerControls.buildings = this.tierControls.tier4;
         this.toggleBuildings();
-        console.log('Tier 4 3D Tiles/Buildings:', this.tierControls.tier4 ? 'ON' : 'OFF');
     }
 
     // Toggle OpenStreetMap layer
