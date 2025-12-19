@@ -106,13 +106,15 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     private lastCameraHeight: number = 0;
     currentCameraHeight: number = 2000000; // Default start height
 
-    // Zoom level thresholds (in meters) - Aligned with Google Maps
+    // Zoom level thresholds (in meters) - Matching Google Maps behavior
     private zoomLevels = {
-        country: 300000, // 300 km - Province level (Zoom 5-7)
-        region: 75000, // 75 km - District level (Zoom 8-10)
-        city: 10000, // 10 km - Sub-district level (Zoom 11-13)
-        neighborhood: 2500, // 2.5 km - POI level (Zoom 16+)
-        street: 1000, // 1 km - Building level (Zoom 18+)
+        province: 500000, // ~500 km - Show provinces at country view (Zoom 6-7)
+        district: 100000, // ~100 km - Show districts at regional view (Zoom 9-10)
+        subDistrict: 20000, // ~20 km - Show sub-districts at city view (Zoom 12-13)
+        roads: 5000, // ~5 km - Show roads at neighborhood view (Zoom 14+)
+        waterways: 15000, // ~15 km - Show waterways at city+ view (Zoom 12+)
+        pois: 2000, // ~2 km - Show POIs at street view (Zoom 16+)
+        buildings: 500, // ~500 m - Show buildings at very close view (Zoom 18+)
     };
 
     // Field labels
@@ -226,7 +228,8 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         key: keyof typeof this.vectorSources,
         strokeColor: string = '#1a73e8',
         strokeWidth: number = 2,
-        maxFeatures: number = 10000
+        maxFeatures: number = 2000,
+        fillColor: string = 'rgba(255, 255, 255, 0.01)'
     ) {
         // Skip if already loaded or currently loading (prevent race condition)
         if (this.vectorSourcesLoaded[key]) {
@@ -241,12 +244,12 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         const startTime = performance.now();
 
         try {
-            console.log(`🔄 [${key}] Starting to load vector layer from: ${typeName}`);
-            console.log(`📡 [${key}] WFS URL: ${url}`);
+            // console.log(`🔄 [${key}] Starting to load vector layer from: ${typeName}`);
+            // console.log(`📡 [${key}] WFS URL: ${url}`);
 
             const dataSource = await Cesium.GeoJsonDataSource.load(url, {
                 stroke: Cesium.Color.fromCssColorString(strokeColor),
-                fill: Cesium.Color.fromAlpha(Cesium.Color.WHITE, 0.01),
+                fill: Cesium.Color.fromCssColorString(fillColor),
                 strokeWidth: strokeWidth,
             });
 
@@ -261,7 +264,10 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             console.log(`✅ [${key}] Vector layer loaded successfully!`);
             console.log(`   📊 Features: ${featureCount}`);
             console.log(`   ⏱️ Load time: ${loadTime}s`);
-            console.log(`   ✓ Status: Ready (hidden by default)`);
+            console.log(`   ✓ Status: Ready`);
+
+            // Update visibility immediately after loading
+            this.updateLayerVisibilityByZoom(this.currentCameraHeight);
         } catch (e) {
             const endTime = performance.now();
             const loadTime = ((endTime - startTime) / 1000).toFixed(2);
@@ -317,73 +323,117 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         });
     }
 
-    // Update layer visibility by zoom
+    // Update layer visibility by zoom (Google Maps style)
     updateLayerVisibilityByZoom(cameraHeight: number) {
         // Tier 3: Vector features (roads, waterways, POIs, boundaries)
         if (this.tierControls.tier3) {
-            // Roads: Load when zoom reaches city level and enabled (Gray, medium line)
-            if (this.layerControls.roads && cameraHeight < this.zoomLevels.city) {
-                if (!this.vectorSourcesLoaded.roads) {
-                    this.loadWFSVector(`${this.workspace}:gis_osm_roads`, 'roads', '#95A5A6', 2, 5000);
-                }
-            }
-            if (this.vectorSources.roads) {
-                this.vectorSources.roads.show = cameraHeight < this.zoomLevels.city && this.layerControls.roads;
-            }
-
-            // Waterways: Load when zoom reaches city level and enabled (Light blue, thin line)
-            if (this.layerControls.waterways && cameraHeight < this.zoomLevels.city) {
-                if (!this.vectorSourcesLoaded.waterways) {
-                    this.loadWFSVector(`${this.workspace}:gis_osm_waterways`, 'waterways', '#5DADE2', 1.5, 5000);
-                }
-            }
-            if (this.vectorSources.waterways) {
-                this.vectorSources.waterways.show = cameraHeight < this.zoomLevels.city && this.layerControls.waterways;
-            }
-
-            // Lazy load and control vector boundary visibility based on zoom level (LOD)
-            // Province: Load when zoom reaches country level and enabled (Red, thick line)
-            if (this.layerControls.provinceBoundaries && cameraHeight > this.zoomLevels.country) {
+            // Province Boundaries: Show at far zoom (country view) - Purple/Pink, thick stroke
+            if (this.layerControls.provinceBoundaries && cameraHeight > this.zoomLevels.province) {
                 if (!this.vectorSourcesLoaded.province) {
-                    this.loadWFSVector(`${this.workspace}:th_province`, 'province', '#E74C3C', 3);
+                    this.loadWFSVector(
+                        `${this.workspace}:th_province`,
+                        'province',
+                        '#9C27B0', // Purple (Google Maps style)
+                        3.5, // Thick line
+                        1000,
+                        'rgba(156, 39, 176, 0.05)' // Very light purple fill
+                    );
                 }
             }
             if (this.vectorSources.province) {
-                this.vectorSources.province.show = cameraHeight > this.zoomLevels.country && this.layerControls.provinceBoundaries;
+                this.vectorSources.province.show = cameraHeight > this.zoomLevels.province && this.layerControls.provinceBoundaries;
             }
 
-            // District: Load when zoom reaches region level and enabled (Orange, medium line)
-            if (this.layerControls.districtBoundaries && cameraHeight <= this.zoomLevels.country && cameraHeight > this.zoomLevels.region) {
+            // District Boundaries: Show at medium zoom (regional view) - Orange, medium stroke
+            if (this.layerControls.districtBoundaries && cameraHeight <= this.zoomLevels.province && cameraHeight > this.zoomLevels.district) {
                 if (!this.vectorSourcesLoaded.district) {
-                    this.loadWFSVector(`${this.workspace}:thailand-amphoe`, 'district', '#F39C12', 2.5);
+                    this.loadWFSVector(
+                        `${this.workspace}:thailand-amphoe`,
+                        'district',
+                        '#FF9800', // Orange (Google Maps style)
+                        2.5, // Medium line
+                        2000,
+                        'rgba(255, 152, 0, 0.03)' // Very light orange fill
+                    );
                 }
             }
             if (this.vectorSources.district) {
                 this.vectorSources.district.show =
-                    cameraHeight <= this.zoomLevels.country && cameraHeight > this.zoomLevels.region && this.layerControls.districtBoundaries;
+                    cameraHeight <= this.zoomLevels.province && cameraHeight > this.zoomLevels.district && this.layerControls.districtBoundaries;
             }
 
-            // Sub-district: Load when zoom reaches city level and enabled (Blue, thin line)
-            if (this.layerControls.subDistrictBoundaries && cameraHeight <= this.zoomLevels.region && cameraHeight > this.zoomLevels.city) {
+            // Sub-district Boundaries: Show at close zoom (city view) - Light gray, thin stroke
+            if (this.layerControls.subDistrictBoundaries && cameraHeight <= this.zoomLevels.district && cameraHeight > this.zoomLevels.subDistrict) {
                 if (!this.vectorSourcesLoaded.subDistrict) {
-                    this.loadWFSVector(`${this.workspace}:thailand-tambon`, 'subDistrict', '#3498DB', 2);
+                    this.loadWFSVector(
+                        `${this.workspace}:thailand-tambon`,
+                        'subDistrict',
+                        '#9E9E9E', // Gray (Google Maps style)
+                        1.5, // Thin line
+                        3000,
+                        'rgba(158, 158, 158, 0.02)' // Very light gray fill
+                    );
                 }
             }
             if (this.vectorSources.subDistrict) {
                 this.vectorSources.subDistrict.show =
-                    cameraHeight <= this.zoomLevels.region && cameraHeight > this.zoomLevels.city && this.layerControls.subDistrictBoundaries;
+                    cameraHeight <= this.zoomLevels.district &&
+                    cameraHeight > this.zoomLevels.subDistrict &&
+                    this.layerControls.subDistrictBoundaries;
             }
 
-            // POIs: Load when zoom reaches neighborhood level and enabled
-            if (this.layerControls.pois && cameraHeight < this.zoomLevels.neighborhood) {
+            // Waterways: Show at city+ zoom - Blue (Google Maps style)
+            if (this.layerControls.waterways && cameraHeight < this.zoomLevels.waterways) {
+                if (!this.vectorSourcesLoaded.waterways) {
+                    this.loadWFSVector(
+                        `${this.workspace}:gis_osm_waterways`,
+                        'waterways',
+                        '#4FC3F7', // Light blue (Google Maps water color)
+                        2,
+                        5000,
+                        'rgba(79, 195, 247, 0.3)' // Light blue fill
+                    );
+                }
+            }
+            if (this.vectorSources.waterways) {
+                this.vectorSources.waterways.show = cameraHeight < this.zoomLevels.waterways && this.layerControls.waterways;
+            }
+
+            // Roads: Show at neighborhood zoom - Gray/Yellow (Google Maps style)
+            if (this.layerControls.roads && cameraHeight < this.zoomLevels.roads) {
+                if (!this.vectorSourcesLoaded.roads) {
+                    this.loadWFSVector(
+                        `${this.workspace}:gis_osm_roads`,
+                        'roads',
+                        '#FFFFFF', // White with border (Google Maps style)
+                        3,
+                        5000,
+                        'rgba(255, 255, 255, 0.9)' // Solid white fill
+                    );
+                }
+            }
+            if (this.vectorSources.roads) {
+                this.vectorSources.roads.show = cameraHeight < this.zoomLevels.roads && this.layerControls.roads;
+            }
+
+            // POIs: Show at street zoom (very close)
+            if (this.layerControls.pois && cameraHeight < this.zoomLevels.pois) {
                 if (!this.vectorSourcesLoaded.pois) {
-                    this.loadWFSVector(`${this.workspace}:gis_osm_pois`, 'pois');
+                    this.loadWFSVector(
+                        `${this.workspace}:gis_osm_pois`,
+                        'pois',
+                        '#F44336', // Red (Google Maps POI color)
+                        2,
+                        2000,
+                        'rgba(244, 67, 54, 0.2)' // Light red fill
+                    );
                 }
             }
             if (this.vectorSources.pois) {
-                this.vectorSources.pois.show = cameraHeight < this.zoomLevels.neighborhood && this.layerControls.pois;
+                this.vectorSources.pois.show = cameraHeight < this.zoomLevels.pois && this.layerControls.pois;
             }
         } else {
+            // Hide all Tier 3 layers when tier is disabled
             if (this.vectorSources.roads) this.vectorSources.roads.show = false;
             if (this.vectorSources.waterways) this.vectorSources.waterways.show = false;
             if (this.vectorSources.province) this.vectorSources.province.show = false;
@@ -392,9 +442,9 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             if (this.vectorSources.pois) this.vectorSources.pois.show = false;
         }
 
-        // Tier 4: Buildings
+        // Tier 4: Buildings (show at very close zoom)
         if (this.tierControls.tier4 && this.layers.buildings) {
-            this.layers.buildings.show = cameraHeight < this.zoomLevels.street && this.layerControls.buildings;
+            this.layers.buildings.show = cameraHeight < this.zoomLevels.buildings && this.layerControls.buildings;
         }
     }
 
@@ -831,75 +881,37 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
 
     // Toggle Province Boundaries layer
     async toggleProvinceBoundaries() {
-        // Only load if zoom level is appropriate
-        if (this.layerControls.provinceBoundaries && this.currentCameraHeight > this.zoomLevels.country) {
-            if (!this.vectorSourcesLoaded.province) {
-                await this.loadWFSVector(`${this.workspace}:th_province`, 'province', '#E74C3C', 3);
-            }
-        }
+        // Trigger zoom-based loading through updateLayerVisibilityByZoom
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     // Toggle District Boundaries layer
     async toggleDistrictBoundaries() {
-        // Only load if zoom level is appropriate
-        if (
-            this.layerControls.districtBoundaries &&
-            this.currentCameraHeight <= this.zoomLevels.country &&
-            this.currentCameraHeight > this.zoomLevels.region
-        ) {
-            if (!this.vectorSourcesLoaded.district) {
-                await this.loadWFSVector(`${this.workspace}:thailand-amphoe`, 'district', '#F39C12', 2.5);
-            }
-        }
+        // Trigger zoom-based loading through updateLayerVisibilityByZoom
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     // Toggle SubDistrict Boundaries layer
     async toggleSubDistrictBoundaries() {
-        // Only load if zoom level is appropriate
-        if (
-            this.layerControls.subDistrictBoundaries &&
-            this.currentCameraHeight <= this.zoomLevels.region &&
-            this.currentCameraHeight > this.zoomLevels.city
-        ) {
-            if (!this.vectorSourcesLoaded.subDistrict) {
-                await this.loadWFSVector(`${this.workspace}:thailand-tambon`, 'subDistrict', '#3498DB', 2);
-            }
-        }
+        // Trigger zoom-based loading through updateLayerVisibilityByZoom
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     // Toggle Roads layer (Vector)
     async toggleRoads() {
-        // Only load if zoom level is appropriate
-        if (this.layerControls.roads && this.currentCameraHeight < this.zoomLevels.city) {
-            if (!this.vectorSourcesLoaded.roads) {
-                await this.loadWFSVector(`${this.workspace}:gis_osm_roads`, 'roads', '#95A5A6', 2, 5000);
-            }
-        }
+        // Trigger zoom-based loading through updateLayerVisibilityByZoom
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     // Toggle Waterways layer (Vector)
     async toggleWaterways() {
-        // Only load if zoom level is appropriate
-        if (this.layerControls.waterways && this.currentCameraHeight < this.zoomLevels.city) {
-            if (!this.vectorSourcesLoaded.waterways) {
-                await this.loadWFSVector(`${this.workspace}:gis_osm_waterways`, 'waterways', '#5DADE2', 1.5, 5000);
-            }
-        }
+        // Trigger zoom-based loading through updateLayerVisibilityByZoom
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     // Toggle POIs layer
     async togglePOIs() {
-        // Only load if zoom level is appropriate
-        if (this.layerControls.pois && this.currentCameraHeight < this.zoomLevels.neighborhood) {
-            if (!this.vectorSourcesLoaded.pois) {
-                await this.loadWFSVector(`${this.workspace}:gis_osm_pois`, 'pois');
-            }
-        }
+        // Trigger zoom-based loading through updateLayerVisibilityByZoom
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
