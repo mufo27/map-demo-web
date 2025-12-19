@@ -3,7 +3,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalModule, ButtonModule, CardModule, GridModule, TableModule } from '@coreui/angular';
 import { IconModule, IconSetService } from '@coreui/icons-angular';
-import { cilMap, cilLocationPin, cilPin, cilBuilding, cilCursor, cilChevronRight, cilChevronBottom } from '@coreui/icons';
+import {
+    cilMap,
+    cilLocationPin,
+    cilPin,
+    cilBuilding,
+    cilCursor,
+    cilChevronRight,
+    cilChevronBottom,
+} from '@coreui/icons';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import * as Cesium from 'cesium';
 
@@ -17,7 +25,17 @@ interface LayerInfo {
 @Component({
     selector: 'app-map-phase-v2',
     standalone: true,
-    imports: [CommonModule, FormsModule, ModalModule, ButtonModule, CardModule, GridModule, TableModule, AutoCompleteModule, IconModule],
+    imports: [
+        CommonModule,
+        FormsModule,
+        ModalModule,
+        ButtonModule,
+        CardModule,
+        GridModule,
+        TableModule,
+        AutoCompleteModule,
+        IconModule,
+    ],
     templateUrl: './map-phase-v2.component.html',
     styleUrl: './map-phase-v2.component.scss',
 })
@@ -380,17 +398,37 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     setupTier3_VectorFeatures() {
         const wmsUrl = `${this.geoserverUrl}/wms`;
 
-        this.layers.openStreetMapSelf = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand`, 'Open Street Map (Self)', 0);
+        this.layers.openStreetMapSelf = this.addWMSLayer(
+            wmsUrl,
+            `${this.workspace}:thailand`,
+            'Open Street Map (Self)',
+            0
+        );
 
         this.layers.waterways = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_waterways`, 'Waterways', 1);
 
         this.layers.roads = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_roads`, 'Roads', 2);
 
-        this.layers.provinceBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:th_province`, 'Province Boundaries', 3);
+        this.layers.provinceBoundaries = this.addWMSLayer(
+            wmsUrl,
+            `${this.workspace}:th_province`,
+            'Province Boundaries',
+            3
+        );
 
-        this.layers.districtBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand-amphoe`, 'District Boundaries', 4);
+        this.layers.districtBoundaries = this.addWMSLayer(
+            wmsUrl,
+            `${this.workspace}:thailand-amphoe`,
+            'District Boundaries',
+            4
+        );
 
-        this.layers.subDistrictBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand-tambon`, 'SubDistrict Boundaries', 5);
+        this.layers.subDistrictBoundaries = this.addWMSLayer(
+            wmsUrl,
+            `${this.workspace}:thailand-tambon`,
+            'SubDistrict Boundaries',
+            5
+        );
 
         this.layers.pois = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_pois`, 'POIs (Points of Interest)', 6);
 
@@ -573,13 +611,31 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         const results: any[] = [];
 
         try {
-            const provinceResults = await this.searchLayer(`${this.workspace}:th_province`, query, 'province', 'PROV_NAMT', 'PROV_NAME');
+            const provinceResults = await this.searchLayer(
+                `${this.workspace}:th_province`,
+                query,
+                'province',
+                'PROV_NAMT',
+                'PROV_NAME'
+            );
             results.push(...provinceResults);
 
-            const districtResults = await this.searchLayer(`${this.workspace}:thailand-amphoe`, query, 'district', 'AMP_NAME_T', 'AMP_NAME_E');
+            const districtResults = await this.searchLayer(
+                `${this.workspace}:thailand-amphoe`,
+                query,
+                'district',
+                'AMP_NAME_T',
+                'AMP_NAME_E'
+            );
             results.push(...districtResults);
 
-            const subDistrictResults = await this.searchLayer(`${this.workspace}:thailand-tambon`, query, 'subdistrict', 'T_NAME_T', 'T_NAME_E');
+            const subDistrictResults = await this.searchLayer(
+                `${this.workspace}:thailand-tambon`,
+                query,
+                'subdistrict',
+                'T_NAME_T',
+                'T_NAME_E'
+            );
             results.push(...subDistrictResults);
 
             const poiResults = await this.searchLayer(`${this.workspace}:gis_osm_pois`, query, 'poi', 'name', 'name');
@@ -591,14 +647,20 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         return results.slice(0, 10);
     }
 
-    async searchLayer(layerName: string, query: string, type: string, thField: string, enField: string): Promise<any[]> {
+    async searchLayer(
+        layerName: string,
+        query: string,
+        type: string,
+        thField: string,
+        enField: string
+    ): Promise<any[]> {
         try {
             const wfsUrl = `${this.geoserverUrl}/wfs`;
             const filter = `${thField} LIKE '%${query}%' OR ${enField} LIKE '%${query}%'`;
 
             const params = new URLSearchParams({
                 service: 'WFS',
-                version: '1.0.0',
+                version: '2.0.0',
                 request: 'GetFeature',
                 typeName: layerName,
                 outputFormat: 'application/json',
