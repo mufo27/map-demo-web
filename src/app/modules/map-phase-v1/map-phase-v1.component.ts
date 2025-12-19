@@ -221,7 +221,13 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     }
 
     // Load WFS vector data as GeoJSON (lazy loading)
-    private async loadWFSVector(typeName: string, key: keyof typeof this.vectorSources, strokeColor: string = '#1a73e8', strokeWidth: number = 2) {
+    private async loadWFSVector(
+        typeName: string,
+        key: keyof typeof this.vectorSources,
+        strokeColor: string = '#1a73e8',
+        strokeWidth: number = 2,
+        maxFeatures: number = 10000
+    ) {
         // Skip if already loaded or currently loading (prevent race condition)
         if (this.vectorSourcesLoaded[key]) {
             console.log(`⏭️ Vector layer already loaded: ${key}`);
@@ -231,7 +237,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         // Set flag immediately to prevent duplicate loading from concurrent calls
         this.vectorSourcesLoaded[key] = true;
 
-        const url = `${this.geoserverUrl}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=${typeName}&outputFormat=application/json&srsName=EPSG:4326`;
+        const url = `${this.geoserverUrl}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=${typeName}&outputFormat=application/json&srsName=EPSG:4326&maxFeatures=${maxFeatures}`;
         const startTime = performance.now();
 
         try {
@@ -318,7 +324,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             // Roads: Load when zoom reaches city level and enabled (Gray, medium line)
             if (this.layerControls.roads && cameraHeight < this.zoomLevels.city) {
                 if (!this.vectorSourcesLoaded.roads) {
-                    this.loadWFSVector(`${this.workspace}:gis_osm_roads`, 'roads', '#95A5A6', 2);
+                    this.loadWFSVector(`${this.workspace}:gis_osm_roads`, 'roads', '#95A5A6', 2, 5000);
                 }
             }
             if (this.vectorSources.roads) {
@@ -328,7 +334,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             // Waterways: Load when zoom reaches city level and enabled (Light blue, thin line)
             if (this.layerControls.waterways && cameraHeight < this.zoomLevels.city) {
                 if (!this.vectorSourcesLoaded.waterways) {
-                    this.loadWFSVector(`${this.workspace}:gis_osm_waterways`, 'waterways', '#5DADE2', 1.5);
+                    this.loadWFSVector(`${this.workspace}:gis_osm_waterways`, 'waterways', '#5DADE2', 1.5, 5000);
                 }
             }
             if (this.vectorSources.waterways) {
@@ -869,7 +875,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         // Only load if zoom level is appropriate
         if (this.layerControls.roads && this.currentCameraHeight < this.zoomLevels.city) {
             if (!this.vectorSourcesLoaded.roads) {
-                await this.loadWFSVector(`${this.workspace}:gis_osm_roads`, 'roads', '#95A5A6', 2);
+                await this.loadWFSVector(`${this.workspace}:gis_osm_roads`, 'roads', '#95A5A6', 2, 5000);
             }
         }
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
@@ -880,7 +886,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         // Only load if zoom level is appropriate
         if (this.layerControls.waterways && this.currentCameraHeight < this.zoomLevels.city) {
             if (!this.vectorSourcesLoaded.waterways) {
-                await this.loadWFSVector(`${this.workspace}:gis_osm_waterways`, 'waterways', '#5DADE2', 1.5);
+                await this.loadWFSVector(`${this.workspace}:gis_osm_waterways`, 'waterways', '#5DADE2', 1.5, 5000);
             }
         }
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
