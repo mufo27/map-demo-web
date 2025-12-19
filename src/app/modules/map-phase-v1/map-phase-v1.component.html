@@ -125,20 +125,7 @@
                 <span class="layer-name">ขอบเขตตำบล</span>
               </label>
             </div>
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.pois"
-                  (change)="togglePOIs()" />
-                <span class="layer-name">สถานที่ (POI)</span>
-              </label>
-            </div>
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.roads"
-                  (change)="toggleRoads()" />
-                <span class="layer-name">ถนน</span>
-              </label>
-            </div>
+
             <div class="layer-item">
               <label class="layer-label">
                 <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.waterways"
@@ -147,6 +134,21 @@
               </label>
             </div>
 
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.roads"
+                  (change)="toggleRoads()" />
+                <span class="layer-name">ถนน</span>
+              </label>
+            </div>
+
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.pois"
+                  (change)="togglePOIs()" />
+                <span class="layer-name">สถานที่ (POI)</span>
+              </label>
+            </div>
           </div>
         </div>
 

@@ -111,10 +111,10 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         province: 500000, // ~500 km - Show provinces at country view (Zoom 6-7)
         district: 100000, // ~100 km - Show districts at regional view (Zoom 9-10)
         subDistrict: 20000, // ~20 km - Show sub-districts at city view (Zoom 12-13)
-        roads: 5000, // ~5 km - Show roads at neighborhood view (Zoom 14+)
         waterways: 15000, // ~15 km - Show waterways at city+ view (Zoom 12+)
-        pois: 2000, // ~2 km - Show POIs at street view (Zoom 16+)
-        buildings: 500, // ~500 m - Show buildings at very close view (Zoom 18+)
+        roads: 8000, // ~8 km - Show roads at neighborhood view (Zoom 14+)
+        pois: 5000, // ~5 km - Show POIs at street view (Zoom 16+)
+        buildings: 3000, // ~3 km - Show buildings at very close view (Zoom 18+)
     };
 
     // Field labels
@@ -262,9 +262,9 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
             const featureCount = dataSource.entities.values.length;
 
             console.log(`✅ [${key}] Vector layer loaded successfully!`);
-            console.log(`   📊 Features: ${featureCount}`);
-            console.log(`   ⏱️ Load time: ${loadTime}s`);
-            console.log(`   ✓ Status: Ready`);
+            // console.log(`   📊 Features: ${featureCount}`);
+            // console.log(`   ⏱️ Load time: ${loadTime}s`);
+            // console.log(`   ✓ Status: Ready`);
 
             // Update visibility immediately after loading
             this.updateLayerVisibilityByZoom(this.currentCameraHeight);
@@ -325,112 +325,138 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
 
     // Update layer visibility by zoom (Google Maps style)
     updateLayerVisibilityByZoom(cameraHeight: number) {
+        console.log(`📷 Camera Height: ${(cameraHeight / 1000).toFixed(2)} km (${cameraHeight.toFixed(0)} m)`);
+
         // Tier 3: Vector features (roads, waterways, POIs, boundaries)
         if (this.tierControls.tier3) {
-            // Province Boundaries: Show at far zoom (country view) - Purple/Pink, thick stroke
+            // Province Boundaries: Show at far zoom (country view) - Soft Purple
             if (this.layerControls.provinceBoundaries && cameraHeight > this.zoomLevels.province) {
                 if (!this.vectorSourcesLoaded.province) {
                     this.loadWFSVector(
                         `${this.workspace}:th_province`,
                         'province',
-                        '#9C27B0', // Purple (Google Maps style)
-                        3.5, // Thick line
+                        '#E1BEE7', // Soft purple (Google Maps style)
+                        1.5, // Thin line
                         1000,
-                        'rgba(156, 39, 176, 0.05)' // Very light purple fill
+                        'rgba(225, 190, 231, 0.08)' // Very subtle purple fill
                     );
                 }
             }
             if (this.vectorSources.province) {
-                this.vectorSources.province.show = cameraHeight > this.zoomLevels.province && this.layerControls.provinceBoundaries;
+                const shouldShow = cameraHeight > this.zoomLevels.province && this.layerControls.provinceBoundaries;
+                this.vectorSources.province.show = shouldShow;
+                if (shouldShow !== this.vectorSources.province.show) {
+                    console.log(`🗺️  Province Boundaries: ${shouldShow ? '✅ SHOW' : '❌ HIDE'}`);
+                }
             }
 
-            // District Boundaries: Show at medium zoom (regional view) - Orange, medium stroke
+            // District Boundaries: Show at medium zoom (regional view) - Soft Orange
             if (this.layerControls.districtBoundaries && cameraHeight <= this.zoomLevels.province && cameraHeight > this.zoomLevels.district) {
                 if (!this.vectorSourcesLoaded.district) {
                     this.loadWFSVector(
                         `${this.workspace}:thailand-amphoe`,
                         'district',
-                        '#FF9800', // Orange (Google Maps style)
-                        2.5, // Medium line
+                        '#FFE0B2', // Soft orange (Google Maps style)
+                        1.2, // Thin line
                         2000,
-                        'rgba(255, 152, 0, 0.03)' // Very light orange fill
+                        'rgba(255, 224, 178, 0.06)' // Very subtle orange fill
                     );
                 }
             }
             if (this.vectorSources.district) {
-                this.vectorSources.district.show =
+                const shouldShow =
                     cameraHeight <= this.zoomLevels.province && cameraHeight > this.zoomLevels.district && this.layerControls.districtBoundaries;
+                this.vectorSources.district.show = shouldShow;
+                if (shouldShow !== this.vectorSources.district.show) {
+                    console.log(`🗺️  District Boundaries: ${shouldShow ? '✅ SHOW' : '❌ HIDE'}`);
+                }
             }
 
-            // Sub-district Boundaries: Show at close zoom (city view) - Light gray, thin stroke
+            // Sub-district Boundaries: Show at close zoom (city view) - Very subtle gray
             if (this.layerControls.subDistrictBoundaries && cameraHeight <= this.zoomLevels.district && cameraHeight > this.zoomLevels.subDistrict) {
                 if (!this.vectorSourcesLoaded.subDistrict) {
                     this.loadWFSVector(
                         `${this.workspace}:thailand-tambon`,
                         'subDistrict',
-                        '#9E9E9E', // Gray (Google Maps style)
-                        1.5, // Thin line
+                        '#E0E0E0', // Very light gray (Google Maps style)
+                        0.8, // Very thin line
                         3000,
-                        'rgba(158, 158, 158, 0.02)' // Very light gray fill
+                        'rgba(224, 224, 224, 0.04)' // Nearly transparent gray fill
                     );
                 }
             }
             if (this.vectorSources.subDistrict) {
-                this.vectorSources.subDistrict.show =
+                const shouldShow =
                     cameraHeight <= this.zoomLevels.district &&
                     cameraHeight > this.zoomLevels.subDistrict &&
                     this.layerControls.subDistrictBoundaries;
+                this.vectorSources.subDistrict.show = shouldShow;
+                if (shouldShow !== this.vectorSources.subDistrict.show) {
+                    console.log(`🗺️  Sub-district Boundaries: ${shouldShow ? '✅ SHOW' : '❌ HIDE'}`);
+                }
             }
 
-            // Waterways: Show at city+ zoom - Blue (Google Maps style)
+            // Waterways: Show at city+ zoom - Soft Aqua Blue (Google Maps style)
             if (this.layerControls.waterways && cameraHeight < this.zoomLevels.waterways) {
                 if (!this.vectorSourcesLoaded.waterways) {
                     this.loadWFSVector(
                         `${this.workspace}:gis_osm_waterways`,
                         'waterways',
-                        '#4FC3F7', // Light blue (Google Maps water color)
-                        2,
+                        '#A8DADC', // Soft aqua blue (Google Maps water)
+                        1.5,
                         5000,
-                        'rgba(79, 195, 247, 0.3)' // Light blue fill
+                        'rgba(168, 218, 220, 0.15)' // Subtle water fill
                     );
                 }
             }
             if (this.vectorSources.waterways) {
-                this.vectorSources.waterways.show = cameraHeight < this.zoomLevels.waterways && this.layerControls.waterways;
+                const shouldShow = cameraHeight < this.zoomLevels.waterways && this.layerControls.waterways;
+                this.vectorSources.waterways.show = shouldShow;
+                if (shouldShow !== this.vectorSources.waterways.show) {
+                    console.log(`💧 Waterways: ${shouldShow ? '✅ SHOW' : '❌ HIDE'}`);
+                }
             }
 
-            // Roads: Show at neighborhood zoom - Gray/Yellow (Google Maps style)
+            // Roads: Show at neighborhood zoom - Soft Gray (Google Maps style)
             if (this.layerControls.roads && cameraHeight < this.zoomLevels.roads) {
                 if (!this.vectorSourcesLoaded.roads) {
                     this.loadWFSVector(
                         `${this.workspace}:gis_osm_roads`,
                         'roads',
-                        '#FFFFFF', // White with border (Google Maps style)
-                        3,
+                        '#BDBDBD', // Soft gray (Google Maps road color)
+                        1.8,
                         5000,
-                        'rgba(255, 255, 255, 0.9)' // Solid white fill
+                        'rgba(250, 250, 250, 0.7)' // Light gray fill
                     );
                 }
             }
             if (this.vectorSources.roads) {
-                this.vectorSources.roads.show = cameraHeight < this.zoomLevels.roads && this.layerControls.roads;
+                const shouldShow = cameraHeight < this.zoomLevels.roads && this.layerControls.roads;
+                this.vectorSources.roads.show = shouldShow;
+                if (shouldShow !== this.vectorSources.roads.show) {
+                    console.log(`🛣️  Roads: ${shouldShow ? '✅ SHOW' : '❌ HIDE'}`);
+                }
             }
 
-            // POIs: Show at street zoom (very close)
+            // POIs: Show at street zoom (very close) - Soft Red Marker
             if (this.layerControls.pois && cameraHeight < this.zoomLevels.pois) {
                 if (!this.vectorSourcesLoaded.pois) {
                     this.loadWFSVector(
                         `${this.workspace}:gis_osm_pois`,
                         'pois',
-                        '#F44336', // Red (Google Maps POI color)
-                        2,
+                        '#EA4335', // Google Maps red
+                        1.5,
                         2000,
-                        'rgba(244, 67, 54, 0.2)' // Light red fill
+                        'rgba(234, 67, 53, 0.12)' // Very subtle red fill
                     );
                 }
             }
             if (this.vectorSources.pois) {
-                this.vectorSources.pois.show = cameraHeight < this.zoomLevels.pois && this.layerControls.pois;
+                const shouldShow = cameraHeight < this.zoomLevels.pois && this.layerControls.pois;
+                this.vectorSources.pois.show = shouldShow;
+                if (shouldShow !== this.vectorSources.pois.show) {
+                    console.log(`📍 POIs: ${shouldShow ? '✅ SHOW' : '❌ HIDE'}`);
+                }
             }
         } else {
             // Hide all Tier 3 layers when tier is disabled
