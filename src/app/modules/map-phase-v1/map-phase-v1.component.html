@@ -136,6 +136,14 @@
 
             <div class="layer-item">
               <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.railways"
+                  (change)="toggleRailways()" />
+                <span class="layer-name">รางรถไฟ</span>
+              </label>
+            </div>
+
+            <div class="layer-item">
+              <label class="layer-label">
                 <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.roads"
                   (change)="toggleRoads()" />
                 <span class="layer-name">ถนน</span>

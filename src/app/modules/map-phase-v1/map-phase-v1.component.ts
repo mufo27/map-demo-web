@@ -46,6 +46,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         subDistrict: null as Cesium.GeoJsonDataSource | null,
         pois: null as Cesium.GeoJsonDataSource | null,
         roads: null as Cesium.GeoJsonDataSource | null,
+        railways: null as Cesium.GeoJsonDataSource | null,
         waterways: null as Cesium.GeoJsonDataSource | null,
     };
 
@@ -56,6 +57,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         subDistrict: false,
         pois: false,
         roads: false,
+        railways: false,
         waterways: false,
     };
 
@@ -64,6 +66,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         openStreetMap: false,
         googleSatellite: false,
         roads: false,
+        railways: false,
         waterways: false,
 
         provinceBoundaries: false,
@@ -112,6 +115,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         district: 100000, // ~100 km - Show districts at regional view (Zoom 9-10)
         subDistrict: 20000, // ~20 km - Show sub-districts at city view (Zoom 12-13)
         waterways: 15000, // ~15 km - Show waterways at city+ view (Zoom 12+)
+        railways: 10000, // ~10 km - Show railways at city view (Zoom 13+)
         roads: 8000, // ~8 km - Show roads at neighborhood view (Zoom 14+)
         pois: 5000, // ~5 km - Show POIs at street view (Zoom 16+)
         buildings: 3000, // ~3 km - Show buildings at very close view (Zoom 18+)
@@ -343,9 +347,10 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
                 }
             }
             if (this.vectorSources.province) {
+                const previousShow = this.vectorSources.province.show;
                 const shouldShow = cameraHeight > this.zoomLevels.province && this.layerControls.provinceBoundaries;
                 this.vectorSources.province.show = shouldShow;
-                if (shouldShow !== this.vectorSources.province.show) {
+                if (shouldShow !== previousShow) {
                     console.log(`🗺️  Province Boundaries: ${shouldShow ? '✅ SHOW' : '❌ HIDE'}`);
                 }
             }
@@ -364,10 +369,11 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
                 }
             }
             if (this.vectorSources.district) {
+                const previousShow = this.vectorSources.district.show;
                 const shouldShow =
                     cameraHeight <= this.zoomLevels.province && cameraHeight > this.zoomLevels.district && this.layerControls.districtBoundaries;
                 this.vectorSources.district.show = shouldShow;
-                if (shouldShow !== this.vectorSources.district.show) {
+                if (shouldShow !== previousShow) {
                     console.log(`🗺️  District Boundaries: ${shouldShow ? '✅ SHOW' : '❌ HIDE'}`);
                 }
             }
@@ -386,12 +392,13 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
                 }
             }
             if (this.vectorSources.subDistrict) {
+                const previousShow = this.vectorSources.subDistrict.show;
                 const shouldShow =
                     cameraHeight <= this.zoomLevels.district &&
                     cameraHeight > this.zoomLevels.subDistrict &&
                     this.layerControls.subDistrictBoundaries;
                 this.vectorSources.subDistrict.show = shouldShow;
-                if (shouldShow !== this.vectorSources.subDistrict.show) {
+                if (shouldShow !== previousShow) {
                     console.log(`🗺️  Sub-district Boundaries: ${shouldShow ? '✅ SHOW' : '❌ HIDE'}`);
                 }
             }
@@ -410,10 +417,33 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
                 }
             }
             if (this.vectorSources.waterways) {
+                const previousShow = this.vectorSources.waterways.show;
                 const shouldShow = cameraHeight < this.zoomLevels.waterways && this.layerControls.waterways;
                 this.vectorSources.waterways.show = shouldShow;
-                if (shouldShow !== this.vectorSources.waterways.show) {
+                if (shouldShow !== previousShow) {
                     console.log(`💧 Waterways: ${shouldShow ? '✅ SHOW' : '❌ HIDE'}`);
+                }
+            }
+
+            // Railways: Show at city+ zoom - Dark Rails (Google Maps style)
+            if (this.layerControls.railways && cameraHeight < this.zoomLevels.railways) {
+                if (!this.vectorSourcesLoaded.railways) {
+                    this.loadWFSVector(
+                        `${this.workspace}:gis_osm_railways`,
+                        'railways',
+                        '#757575', // Dark gray (Google Maps railway color)
+                        2.5,
+                        3000,
+                        'rgba(117, 117, 117, 0.6)' // Medium gray fill
+                    );
+                }
+            }
+            if (this.vectorSources.railways) {
+                const previousShow = this.vectorSources.railways.show;
+                const shouldShow = cameraHeight < this.zoomLevels.railways && this.layerControls.railways;
+                this.vectorSources.railways.show = shouldShow;
+                if (shouldShow !== previousShow) {
+                    console.log(`🚂 Railways: ${shouldShow ? '✅ SHOW' : '❌ HIDE'}`);
                 }
             }
 
@@ -431,9 +461,10 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
                 }
             }
             if (this.vectorSources.roads) {
+                const previousShow = this.vectorSources.roads.show;
                 const shouldShow = cameraHeight < this.zoomLevels.roads && this.layerControls.roads;
                 this.vectorSources.roads.show = shouldShow;
-                if (shouldShow !== this.vectorSources.roads.show) {
+                if (shouldShow !== previousShow) {
                     console.log(`🛣️  Roads: ${shouldShow ? '✅ SHOW' : '❌ HIDE'}`);
                 }
             }
@@ -452,15 +483,17 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
                 }
             }
             if (this.vectorSources.pois) {
+                const previousShow = this.vectorSources.pois.show;
                 const shouldShow = cameraHeight < this.zoomLevels.pois && this.layerControls.pois;
                 this.vectorSources.pois.show = shouldShow;
-                if (shouldShow !== this.vectorSources.pois.show) {
+                if (shouldShow !== previousShow) {
                     console.log(`📍 POIs: ${shouldShow ? '✅ SHOW' : '❌ HIDE'}`);
                 }
             }
         } else {
             // Hide all Tier 3 layers when tier is disabled
             if (this.vectorSources.roads) this.vectorSources.roads.show = false;
+            if (this.vectorSources.railways) this.vectorSources.railways.show = false;
             if (this.vectorSources.waterways) this.vectorSources.waterways.show = false;
             if (this.vectorSources.province) this.vectorSources.province.show = false;
             if (this.vectorSources.district) this.vectorSources.district.show = false;
@@ -864,6 +897,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         this.layerControls.districtBoundaries = this.tierControls.tier3;
         this.layerControls.subDistrictBoundaries = this.tierControls.tier3;
         this.layerControls.roads = this.tierControls.tier3;
+        this.layerControls.railways = this.tierControls.tier3;
         this.layerControls.waterways = this.tierControls.tier3;
         this.layerControls.pois = this.tierControls.tier3;
 
@@ -872,6 +906,7 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
         this.toggleDistrictBoundaries();
         this.toggleSubDistrictBoundaries();
         this.toggleRoads();
+        this.toggleRailways();
         this.toggleWaterways();
         this.togglePOIs();
     }
@@ -925,6 +960,12 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
 
     // Toggle Roads layer (Vector)
     async toggleRoads() {
+        // Trigger zoom-based loading through updateLayerVisibilityByZoom
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
+    }
+
+    // Toggle Railways layer (Vector)
+    async toggleRailways() {
         // Trigger zoom-based loading through updateLayerVisibilityByZoom
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
