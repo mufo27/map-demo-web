@@ -41,13 +41,13 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     layerControls = {
         openStreetMap: false,
         googleSatellite: false,
-        openStreetMapSelf: true,
-        provinceBoundaries: true,
-        districtBoundaries: true,
-        subDistrictBoundaries: true,
-        roads: true,
-        waterways: true,
-        pois: true,
+        openStreetMapSelf: false,
+        provinceBoundaries: false,
+        districtBoundaries: false,
+        subDistrictBoundaries: false,
+        roads: false,
+        waterways: false,
+        pois: false,
         buildings: false,
     };
 
@@ -55,17 +55,17 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     tierControls = {
         tier0: true,
         tier1: false,
-        tier2: true,
-        tier3: true,
+        tier2: false,
+        tier3: false,
         tier4: false,
     };
 
     tierCollapsed = {
         tier0: true,
-        tier1: true,
+        tier1: false,
         tier2: false,
         tier3: false,
-        tier4: true,
+        tier4: false,
     };
 
     panelCollapsed = false;
