@@ -40,45 +40,22 @@
             <input type="checkbox" class="tier-checkbox" [(ngModel)]="tierControls.tier0" (change)="toggleTier0()" />
             <span class="tier-name">🌍 Tier 0: Globe (Ellipsoid)</span>
           </div>
-          <div class="tier-info">
-            <div class="info-row">
-              <span class="info-label">ชื่อข้อมูล:</span>
-              <span class="info-value">{{ tierInfo['tier0'].info.dataName }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">แหล่งให้บริการ:</span>
-              <span class="info-value">{{ tierInfo['tier0'].info.serviceSource }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Format:</span>
-              <span class="info-value">{{ tierInfo['tier0'].info.format }}</span>
-            </div>
-          </div>
         </div>
-
 
         <!-- Tier 1: Terrain -->
         <div class="tier-section">
           <div class="tier-header">
             <input type="checkbox" class="tier-checkbox" [(ngModel)]="tierControls.tier1" (change)="toggleTier1()" />
-            <span class="tier-name">🗻 Tier 1: Terrain (DEM)</span>
+            <span class="tier-name tier-clickable" (click)="toggleTier1Collapse()">
+              <svg cIcon [name]="tierCollapsed.tier1 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"
+                class="tier-toggle-icon"></svg>
+              🗻 Tier 1: Terrain (DEM)
+            </span>
           </div>
-          <div class="tier-info">
-            <div class="info-row">
-              <span class="info-label">ชื่อข้อมูล:</span>
-              <span class="info-value">{{ tierInfo['tier1'].info.dataName }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">แหล่งให้บริการ:</span>
-              <span class="info-value">{{ tierInfo['tier1'].info.serviceSource }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Format:</span>
-              <span class="info-value">{{ tierInfo['tier1'].info.format }}</span>
-            </div>
+          <div class="tier-layers" *ngIf="!tierCollapsed.tier1">
+            <!-- Placeholder for future terrain layers if needed -->
           </div>
         </div>
-
 
         <!-- Tier 2: Imagery -->
         <div class="tier-section">
@@ -90,31 +67,20 @@
               🗺️ Tier 2: Imagery
             </span>
           </div>
-          <div class="tier-info">
-            <div class="info-row">
-              <span class="info-label">ชื่อข้อมูล:</span>
-              <span class="info-value">{{ tierInfo['tier2'].info.dataName }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">แหล่งให้บริการ:</span>
-              <span class="info-value">{{ tierInfo['tier2'].info.serviceSource }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Format:</span>
-              <span class="info-value">{{ tierInfo['tier2'].info.format }}</span>
-            </div>
-          </div>
           <div class="tier-layers" *ngIf="!tierCollapsed.tier2">
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.openStreetMapSelf"
+                  (change)="toggleOpenStreetMapSelf()" />
+                <span class="layer-name">Open Street Map (Self)</span>
+              </label>
+            </div>
             <div class="layer-item">
               <label class="layer-label">
                 <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.openStreetMap"
                   (change)="toggleOpenStreetMap()" />
                 <span class="layer-name">Open Street Map</span>
               </label>
-              <div class="layer-meta">
-                <span class="meta-item"><strong>แหล่ง:</strong> OpenStreetMap.org</span>
-                <span class="meta-item"><strong>Format:</strong> PNG Tiles</span>
-              </div>
             </div>
             <div class="layer-item">
               <label class="layer-label">
@@ -122,25 +88,10 @@
                   (change)="toggleGoogleSatellite()" />
                 <span class="layer-name">Google Satellite</span>
               </label>
-              <div class="layer-meta">
-                <span class="meta-item"><strong>แหล่ง:</strong> Google Maps API</span>
-                <span class="meta-item"><strong>Format:</strong> JPEG Tiles</span>
-              </div>
             </div>
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.openStreetMapSelf"
-                  (change)="toggleOpenStreetMapSelf()" />
-                <span class="layer-name">Open Street Map (Self)</span>
-              </label>
-              <div class="layer-meta">
-                <span class="meta-item"><strong>แหล่ง:</strong> GeoServer WMS</span>
-                <span class="meta-item"><strong>Format:</strong> PNG</span>
-              </div>
-            </div>
+
           </div>
         </div>
-
 
         <!-- Tier 3: Vector/Features -->
         <div class="tier-section">
@@ -152,20 +103,6 @@
               📍 Tier 3: Vector/Features
             </span>
           </div>
-          <div class="tier-info">
-            <div class="info-row">
-              <span class="info-label">ชื่อข้อมูล:</span>
-              <span class="info-value">{{ tierInfo['tier3'].info.dataName }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">แหล่งให้บริการ:</span>
-              <span class="info-value">{{ tierInfo['tier3'].info.serviceSource }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Format:</span>
-              <span class="info-value">{{ tierInfo['tier3'].info.format }}</span>
-            </div>
-          </div>
           <div class="tier-layers" *ngIf="!tierCollapsed.tier3">
             <div class="layer-item">
               <label class="layer-label">
@@ -173,9 +110,6 @@
                   (change)="toggleProvinceBoundaries()" />
                 <span class="layer-name">ขอบเขตจังหวัด</span>
               </label>
-              <div class="layer-meta">
-                <span class="meta-item"><strong>Format:</strong> WMS</span>
-              </div>
             </div>
             <div class="layer-item">
               <label class="layer-label">
@@ -183,9 +117,6 @@
                   (change)="toggleDistrictBoundaries()" />
                 <span class="layer-name">ขอบเขตอำเภอ</span>
               </label>
-              <div class="layer-meta">
-                <span class="meta-item"><strong>Format:</strong> WMS</span>
-              </div>
             </div>
             <div class="layer-item">
               <label class="layer-label">
@@ -193,9 +124,6 @@
                   (change)="toggleSubDistrictBoundaries()" />
                 <span class="layer-name">ขอบเขตตำบล</span>
               </label>
-              <div class="layer-meta">
-                <span class="meta-item"><strong>Format:</strong> WMS</span>
-              </div>
             </div>
             <div class="layer-item">
               <label class="layer-label">
@@ -203,9 +131,6 @@
                   (change)="toggleRoads()" />
                 <span class="layer-name">ถนน</span>
               </label>
-              <div class="layer-meta">
-                <span class="meta-item"><strong>Format:</strong> WMS</span>
-              </div>
             </div>
             <div class="layer-item">
               <label class="layer-label">
@@ -213,9 +138,6 @@
                   (change)="toggleWaterways()" />
                 <span class="layer-name">คลอง/ทางน้ำ</span>
               </label>
-              <div class="layer-meta">
-                <span class="meta-item"><strong>Format:</strong> WMS</span>
-              </div>
             </div>
             <div class="layer-item">
               <label class="layer-label">
@@ -223,13 +145,9 @@
                   (change)="togglePOIs()" />
                 <span class="layer-name">สถานที่ (POI)</span>
               </label>
-              <div class="layer-meta">
-                <span class="meta-item"><strong>Format:</strong> WMS</span>
-              </div>
             </div>
           </div>
         </div>
-
 
         <!-- Tier 4: 3D Tiles/Buildings -->
         <div class="tier-section">
@@ -241,20 +159,6 @@
               🏢 Tier 4: 3D Tiles/Buildings
             </span>
           </div>
-          <div class="tier-info">
-            <div class="info-row">
-              <span class="info-label">ชื่อข้อมูล:</span>
-              <span class="info-value">{{ tierInfo['tier4'].info.dataName }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">แหล่งให้บริการ:</span>
-              <span class="info-value">{{ tierInfo['tier4'].info.serviceSource }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Format:</span>
-              <span class="info-value">{{ tierInfo['tier4'].info.format }}</span>
-            </div>
-          </div>
           <div class="tier-layers" *ngIf="!tierCollapsed.tier4">
             <div class="layer-item">
               <label class="layer-label">
@@ -262,13 +166,9 @@
                   (change)="toggleBuildings()" />
                 <span class="layer-name">อาคาร/สิ่งปลูกสร้าง</span>
               </label>
-              <div class="layer-meta">
-                <span class="meta-item"><strong>Format:</strong> WMS</span>
-              </div>
             </div>
           </div>
         </div>
-
 
       </div>
     </div>
