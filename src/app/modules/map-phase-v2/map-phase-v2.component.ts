@@ -92,14 +92,14 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     private lastCameraHeight: number = 0;
     currentCameraHeight: number = 2000000; // Default start height
 
-    // Zoom level thresholds (in meters) - Aligned with Google Maps
+    // Zoom level thresholds (in meters) - Based on camera height from globe
     private zoomLevels = {
-        country: 300000, // 300 km - Province level (Zoom 5-7)
-        region: 75000, // 75 km - District level (Zoom 8-10)
-        city: 10000, // 10 km - Sub-district/Roads/Railways/Waterways (Zoom 11-13)
-        railways: 10000, // 10 km - Railways level (Zoom 13+)
-        neighborhood: 2500, // 2.5 km - POI level (Zoom 16+)
-        street: 1000, // 1 km - Building level (Zoom 18+)
+        country: 2000000, // ~2000 km - Province level (minLevel: 0, maxLevel: 6)
+        region: 500000, // ~500 km - District level (minLevel: 6, maxLevel: 9)
+        city: 100000, // ~100 km - Sub-district level (minLevel: 9, maxLevel: 12)
+        roads: 20000, // ~20 km - Roads/Railways/Waterways level (minLevel: 12, maxLevel: 15)
+        neighborhood: 5000, // ~5 km - POI level (minLevel: 15, maxLevel: 18)
+        street: 1000, // ~1 km - Building level (minLevel: 18, maxLevel: 21)
     };
 
     fieldLabels: { [key: string]: string } = {
@@ -184,53 +184,53 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     }
 
     updateLayerVisibilityByZoom(cameraHeight: number) {
-        // Google Maps aligned zoom levels:
-        // Province: > 300km (Zoom 5-7)
-        // District: 75-300km (Zoom 8-10)
-        // Sub-district: 10-75km (Zoom 11-13)
-        // Roads/Waterways: < 10km (Zoom 14+)
-        // POIs: < 2.5km (Zoom 16+)
-        // Buildings/OSM: < 1km (Zoom 18+)
+        // Zoom levels based on camera height:
+        // Province: > 2000km (minLevel: 0, maxLevel: 6)
+        // District: 500-2000km (minLevel: 6, maxLevel: 9)
+        // Sub-district: 100-500km (minLevel: 9, maxLevel: 12)
+        // Roads/Railways/Waterways: < 20km (minLevel: 12, maxLevel: 15)
+        // POIs: < 5km (minLevel: 15, maxLevel: 18)
+        // Buildings: < 1km (minLevel: 18, maxLevel: 21)
 
         const showProvince = cameraHeight > this.zoomLevels.country;
         const showDistrict = cameraHeight <= this.zoomLevels.country && cameraHeight > this.zoomLevels.region;
         const showSubDistrict = cameraHeight <= this.zoomLevels.region && cameraHeight > this.zoomLevels.city;
 
-        // Province: Show at country level (>300km) AND when checkbox enabled
+        // Province: Show at country level (>2000km) AND when checkbox enabled
         if (this.layers.provinceBoundaries) {
             this.layers.provinceBoundaries.show = showProvince && this.layerControls.provinceBoundaries;
         }
 
-        // District: Show at region level (75-300km) AND when checkbox enabled
+        // District: Show at region level (500-2000km) AND when checkbox enabled
         if (this.layers.districtBoundaries) {
             this.layers.districtBoundaries.show = showDistrict && this.layerControls.districtBoundaries;
         }
 
-        // Sub-district: Show at city level (10-75km) AND when checkbox enabled
+        // Sub-district: Show at city level (100-500km) AND when checkbox enabled
         if (this.layers.subDistrictBoundaries) {
             this.layers.subDistrictBoundaries.show = showSubDistrict && this.layerControls.subDistrictBoundaries;
         }
 
         // Other layers respect tier controls AND user checkboxes
         if (this.tierControls.tier3) {
-            // Roads, Railways and Waterways: Show when < 10 km (Zoom 14+)
+            // Roads, Railways and Waterways: Show when < 20 km (minLevel: 12, maxLevel: 15)
             if (this.layers.roads) {
-                this.layers.roads.show = cameraHeight < this.zoomLevels.city && this.layerControls.roads;
+                this.layers.roads.show = cameraHeight < this.zoomLevels.roads && this.layerControls.roads;
             }
             if (this.layers.railways) {
-                this.layers.railways.show = cameraHeight < this.zoomLevels.city && this.layerControls.railways;
+                this.layers.railways.show = cameraHeight < this.zoomLevels.roads && this.layerControls.railways;
             }
             if (this.layers.waterways) {
-                this.layers.waterways.show = cameraHeight < this.zoomLevels.city && this.layerControls.waterways;
+                this.layers.waterways.show = cameraHeight < this.zoomLevels.roads && this.layerControls.waterways;
             }
 
-            // POI: Show when < 2.5 km (Zoom 16+)
+            // POI: Show when < 5 km (minLevel: 15, maxLevel: 18)
             if (this.layers.pois) {
                 this.layers.pois.show = cameraHeight < this.zoomLevels.neighborhood && this.layerControls.pois;
             }
         }
 
-        // Buildings: Show when < 1 km (Zoom 18+)
+        // Buildings: Show when < 1 km (minLevel: 18, maxLevel: 21)
         if (this.tierControls.tier4 && this.layers.buildings) {
             this.layers.buildings.show = cameraHeight < this.zoomLevels.street && this.layerControls.buildings;
         }

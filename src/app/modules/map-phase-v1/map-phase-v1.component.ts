@@ -109,16 +109,16 @@ export class MapPhaseV1Component implements AfterViewInit, OnDestroy {
     private lastCameraHeight: number = 0;
     currentCameraHeight: number = 2000000; // Default start height
 
-    // Zoom level thresholds (in meters) - Matching Google Maps behavior
+    // Zoom level thresholds (in meters) - Based on camera height from globe
     private zoomLevels = {
-        province: 500000, // ~500 km - Show provinces at country view (Zoom 6-7)
-        district: 100000, // ~100 km - Show districts at regional view (Zoom 9-10)
-        subDistrict: 20000, // ~20 km - Show sub-districts at city view (Zoom 12-13)
-        waterways: 15000, // ~15 km - Show waterways at city+ view (Zoom 12+)
-        railways: 10000, // ~10 km - Show railways at city view (Zoom 13+)
-        roads: 8000, // ~8 km - Show roads at neighborhood view (Zoom 14+)
-        pois: 5000, // ~5 km - Show POIs at street view (Zoom 16+)
-        buildings: 3000, // ~3 km - Show buildings at very close view (Zoom 18+)
+        province: 2000000, // ~2000 km - Show provinces at country view (minLevel: 0, maxLevel: 6)
+        district: 500000, // ~500 km - Show districts at regional view (minLevel: 6, maxLevel: 9)
+        subDistrict: 100000, // ~100 km - Show sub-districts at city view (minLevel: 9, maxLevel: 12)
+        waterways: 20000, // ~20 km - Show waterways at city+ view (minLevel: 12, maxLevel: 15)
+        railways: 20000, // ~20 km - Show railways at city view (minLevel: 12, maxLevel: 15)
+        roads: 20000, // ~20 km - Show roads at neighborhood view (minLevel: 12, maxLevel: 15)
+        pois: 5000, // ~5 km - Show POIs at street view (minLevel: 15, maxLevel: 18)
+        buildings: 1000, // ~1 km - Show buildings at very close view (minLevel: 18, maxLevel: 21)
     };
 
     // Field labels
