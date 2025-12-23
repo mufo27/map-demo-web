@@ -879,9 +879,29 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
                         properties = feature.data;
                     }
 
+                    // Detect layer type from imageryLayer
+                    let featureType = 'unknown';
+                    if (feature.imageryLayer) {
+                        const layerName = feature.imageryLayer._imageryProvider?._layers || '';
+                        if (layerName.includes('transport-kamphaeng_phet_4k')) {
+                            featureType = 'parcel1';
+                        } else if (layerName.includes('transport-thailand')) {
+                            featureType = 'parcel2';
+                        } else if (layerName.includes('thailand-changwat')) {
+                            featureType = 'province';
+                        } else if (layerName.includes('thailand-amphoe')) {
+                            featureType = 'district';
+                        } else if (layerName.includes('thailand-tambon')) {
+                            featureType = 'subdistrict';
+                        } else if (layerName.includes('pois')) {
+                            featureType = 'poi';
+                        }
+                    }
+
                     this.selectedFeature = {
                         properties: properties || {},
                         name: feature.name,
+                        type: featureType,
                     };
                     this.modalVisible = true;
                 } else {
