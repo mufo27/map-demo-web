@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalModule, ButtonModule, CardModule, GridModule, TableModule } from '@coreui/angular';
 import { IconModule, IconSetService } from '@coreui/icons-angular';
-import { cilMap, cilLocationPin, cilPin, cilBuilding, cilCursor, cilChevronRight, cilChevronBottom } from '@coreui/icons';
+import { cilMap, cilLocationPin, cilPin, cilBuilding, cilCursor, cilChevronRight, cilChevronBottom, cilFilter } from '@coreui/icons';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import * as Cesium from 'cesium';
 
@@ -28,6 +28,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             cilCursor,
             cilChevronRight,
             cilChevronBottom,
+            cilFilter,
         };
     }
 
@@ -42,6 +43,8 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         waterways: null as Cesium.ImageryLayer | null,
         pois: null as Cesium.ImageryLayer | null,
         buildings: null as Cesium.ImageryLayer | null,
+        parcel1: null as Cesium.ImageryLayer | null,
+        parcel2: null as Cesium.ImageryLayer | null,
 
         openStreetMapSelf: null as Cesium.ImageryLayer | null,
     };
@@ -57,6 +60,8 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         waterways: false,
         pois: false,
         buildings: false,
+        parcel1: false,
+        parcel2: false,
         openStreetMapSelf: false,
     };
 
@@ -84,6 +89,13 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     suggestions: any[] = [];
     searchTimeout: any;
 
+    // Advanced search
+    advancedSearchExpanded = false;
+    parcel1SearchQuery = '';
+    parcel2SearchQuery = '';
+    parcel1Results: any[] = [];
+    parcel2Results: any[] = [];
+
     selectedFeature: any = null;
     modalVisible = false;
     private handler: Cesium.ScreenSpaceEventHandler | null = null;
@@ -92,11 +104,19 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     private lastCameraHeight: number = 0;
     currentCameraHeight: number = 2000000; // Default start height
 
+    // Shopping cart for selected parcels
+    selectedParcels: any[] = [];
+    cartVisible = false;
+    cartCollapsed = true;
+    private selectedParcelEntities: Cesium.Entity[] = [];
+
     // Zoom level thresholds (in meters) - Based on camera height from globe
     private zoomLevels = {
         country: 2000000, // ~2000 km - Province level (minLevel: 0, maxLevel: 6)
         region: 500000, // ~500 km - District level (minLevel: 6, maxLevel: 9)
         city: 100000, // ~100 km - Sub-district level (minLevel: 9, maxLevel: 12)
+        parcel1: Number.POSITIVE_INFINITY, // Kamphaeng Phet: Always show when enabled (no zoom limit)
+        parcel2: Number.POSITIVE_INFINITY, // Thailand: Always show when enabled (no zoom limit)
         roads: 20000, // ~20 km - Roads/Railways/Waterways level (minLevel: 12, maxLevel: 15)
         neighborhood: 5000, // ~5 km - POI level (minLevel: 15, maxLevel: 18)
         street: 1000, // ~1 km - Building level (minLevel: 18, maxLevel: 21)
@@ -118,6 +138,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         Shape_Area: 'พื้นที่',
         NAME: 'ชื่อ',
         name: 'ชื่อ',
+        PARCEL_NO: 'เลขระวาง',
+        PARCEL_ID: 'รหัสเลขระวาง',
+        PARCEL_AREA: 'พื้นที่ระวาง',
     };
 
     togglePanel() {
@@ -213,6 +236,26 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
 
         // Other layers respect tier controls AND user checkboxes
         if (this.tierControls.tier3) {
+            // Parcel Layer 1 - Kamphaeng Phet: Independent zoom control
+            if (this.layers.parcel1) {
+                this.layers.parcel1.show = this.tierControls.tier3 && cameraHeight < this.zoomLevels.parcel1 && this.layerControls.parcel1;
+            }
+
+            // Parcel Layer 2 - Thailand: Independent zoom control
+            if (this.layers.parcel2) {
+                this.layers.parcel2.show = this.tierControls.tier3 && cameraHeight < this.zoomLevels.parcel2 && this.layerControls.parcel2;
+            }
+        } else {
+            // Hide parcel layers when Tier 3 is disabled
+            if (this.layers.parcel1) {
+                this.layers.parcel1.show = false;
+            }
+            if (this.layers.parcel2) {
+                this.layers.parcel2.show = false;
+            }
+        }
+
+        if (this.tierControls.tier3) {
             // Roads, Railways and Waterways: Show when < 20 km (minLevel: 12, maxLevel: 15)
             if (this.layers.roads) {
                 this.layers.roads.show = cameraHeight < this.zoomLevels.roads && this.layerControls.roads;
@@ -287,6 +330,11 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.layers.pois = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_pois`, 'POIs (Points of Interest)', 7);
 
         this.layers.buildings = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_buildings_a`, 'Buildings', 8);
+
+        // Parcel layers (เลขระวาง) - Kamphaeng Phet on top to show detail in overlap area
+        this.layers.parcel2 = this.addWMSLayer(wmsUrl, `${this.workspace}:transport-thailand`, 'ประเทศไทย (เลขระวาง 2)', 9);
+
+        this.layers.parcel1 = this.addWMSLayer(wmsUrl, `${this.workspace}:transport-kamphaeng_phet_4k`, 'กำแพงเพชร (เลขระวาง 1)', 11);
     }
 
     private addWMSLayer(url: string, layers: string, name: string, zIndex: number = 0): Cesium.ImageryLayer | null {
@@ -354,6 +402,14 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     }
 
     togglePOIs() {
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
+    }
+
+    toggleParcel1() {
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
+    }
+
+    toggleParcel2() {
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
@@ -425,6 +481,8 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.layerControls.railways = this.tierControls.tier3;
         this.layerControls.waterways = this.tierControls.tier3;
         this.layerControls.pois = this.tierControls.tier3;
+        this.layerControls.parcel1 = this.tierControls.tier3;
+        this.layerControls.parcel2 = this.tierControls.tier3;
 
         this.toggleProvinceBoundaries();
         this.toggleDistrictBoundaries();
@@ -433,6 +491,8 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.toggleRailways();
         this.toggleWaterways();
         this.togglePOIs();
+        this.toggleParcel1();
+        this.toggleParcel2();
     }
 
     // Toggle Tier 3 collapse/expand
@@ -482,6 +542,8 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
 
             const poiResults = await this.searchLayer(`${this.workspace}:gis_osm_pois`, query, 'poi', 'name', 'name');
             results.push(...poiResults);
+
+            // Note: Parcel searches are now handled in the Advanced Search panel
         } catch (error) {
             console.error('GeoServer search error:', error);
         }
@@ -554,9 +616,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
                     latitude = coords.reduce((sum: number, c: any) => sum + c[1], 0) / coords.length;
                     height = type === 'province' ? 200000 : 100000;
                 }
-                const nameTh = props[thField] || '';
-                const nameEn = props[enField] || '';
-                const displayName = nameTh || nameEn;
+                const nameTh = props[thField] !== undefined && props[thField] !== null ? String(props[thField]) : '';
+                const nameEn = props[enField] !== undefined && props[enField] !== null ? String(props[enField]) : '';
+                const displayName = nameTh || nameEn || 'N/A';
 
                 console.log(`📌 Parsed: ${displayName} at (${longitude}, ${latitude})`);
 
@@ -584,6 +646,8 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             district: 'อำเภอ',
             subdistrict: 'ตำบล',
             poi: 'สถานที่',
+            parcel1: 'เลขระวาง 1',
+            parcel2: 'เลขระวาง 2',
         };
         return labels[type] || type;
     }
@@ -594,6 +658,8 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             district: 'cil-map',
             subdistrict: 'cil-map',
             poi: 'cil-location-pin',
+            parcel1: 'cil-pin',
+            parcel2: 'cil-pin',
         };
         return icons[type] || 'cil-cursor';
     }
@@ -660,6 +726,91 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             this.viewer.entities.remove(this.pinEntity);
             this.pinEntity = null;
         }
+    }
+
+    // Advanced Search Methods
+    toggleAdvancedSearch() {
+        this.advancedSearchExpanded = !this.advancedSearchExpanded;
+    }
+
+    async searchParcel1() {
+        if (!this.parcel1SearchQuery || this.parcel1SearchQuery.trim().length === 0) {
+            this.parcel1Results = [];
+            return;
+        }
+
+        try {
+            this.parcel1Results = await this.searchLayer(
+                `${this.workspace}:transport-kamphaeng_phet_4k`,
+                this.parcel1SearchQuery,
+                'parcel1',
+                'MAPSHEET',
+                'MAPSHEET'
+            );
+        } catch (error) {
+            console.error('Parcel 1 search error:', error);
+            this.parcel1Results = [];
+        }
+    }
+
+    async searchParcel2() {
+        if (!this.parcel2SearchQuery || this.parcel2SearchQuery.trim().length === 0) {
+            this.parcel2Results = [];
+            return;
+        }
+
+        try {
+            this.parcel2Results = await this.searchLayer(
+                `${this.workspace}:transport-thailand`,
+                this.parcel2SearchQuery,
+                'parcel2',
+                'SHEET_ID',
+                'SHEET_ID'
+            );
+        } catch (error) {
+            console.error('Parcel 2 search error:', error);
+            this.parcel2Results = [];
+        }
+    }
+
+    selectParcelResult(result: any) {
+        console.log('🎯 Selected parcel:', result);
+
+        // Remove previous pin if exists
+        if (this.pinEntity) {
+            this.viewer.entities.remove(this.pinEntity);
+            this.pinEntity = null;
+        }
+
+        // Create pin marker
+        this.pinEntity = this.viewer.entities.add({
+            position: Cesium.Cartesian3.fromDegrees(result.longitude, result.latitude),
+            billboard: {
+                image: this.createPinIcon(),
+                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+                scale: 0.8,
+                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+            label: {
+                text: String(result.name || 'Selected Location'),
+                font: 'bold 14px sans-serif',
+                fillColor: Cesium.Color.fromCssColorString('#E74C3C'),
+                showBackground: false,
+                pixelOffset: new Cesium.Cartesian2(35, -15),
+                horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+                verticalOrigin: Cesium.VerticalOrigin.CENTER,
+                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+        });
+
+        // Fly to location
+        this.viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(result.longitude, result.latitude, 5000),
+            duration: 2,
+        });
     }
 
     private createPinIcon(): string {
@@ -746,6 +897,10 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.modalVisible = event;
     }
 
+    closeModal() {
+        this.modalVisible = false;
+    }
+
     getLabel(key: any): string {
         return this.fieldLabels[String(key)] || String(key);
     }
@@ -763,5 +918,156 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             if (b.key === 'Area_km2_') return -1;
             return 0;
         });
+    }
+
+    // Shopping Cart Methods
+    toggleCart() {
+        this.cartCollapsed = !this.cartCollapsed;
+    }
+
+    addToCart(feature: any) {
+        // Check if already in cart
+        const exists = this.selectedParcels.find((p) => JSON.stringify(p.properties) === JSON.stringify(feature.properties));
+
+        if (!exists) {
+            this.selectedParcels.push(feature);
+            this.highlightParcel(feature);
+            console.log('📦 Added to cart:', feature);
+
+            // Save to localStorage
+            this.saveCartToStorage();
+        }
+    }
+
+    removeFromCart(index: number) {
+        if (index >= 0 && index < this.selectedParcels.length) {
+            const removed = this.selectedParcels.splice(index, 1)[0];
+            this.removeParcelHighlight(index);
+            console.log('🗑️ Removed from cart:', removed);
+
+            // Save to localStorage
+            this.saveCartToStorage();
+        }
+    }
+
+    clearCart() {
+        this.selectedParcels = [];
+        this.clearAllHighlights();
+        console.log('🗑️ Cart cleared');
+
+        // Save to localStorage
+        this.saveCartToStorage();
+    }
+
+    exportCart() {
+        const data = this.selectedParcels.map((p) => p.properties);
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `parcel-cart-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        console.log('📥 Cart exported');
+    }
+
+    private highlightParcel(feature: any) {
+        // Create a highlighted entity for the selected parcel
+        // This would require the geometry data from the feature
+        // For now, we'll just add a marker at the centroid
+        if (feature.geometry && feature.geometry.coordinates) {
+            const coords = feature.geometry.coordinates;
+            let longitude = 0;
+            let latitude = 0;
+
+            if (feature.geometry.type === 'Point') {
+                [longitude, latitude] = coords;
+            } else if (feature.geometry.type === 'Polygon') {
+                const polyCoords = coords[0];
+                longitude = polyCoords.reduce((sum: number, c: any) => sum + c[0], 0) / polyCoords.length;
+                latitude = polyCoords.reduce((sum: number, c: any) => sum + c[1], 0) / polyCoords.length;
+            } else if (feature.geometry.type === 'MultiPolygon') {
+                const polyCoords = coords[0][0];
+                longitude = polyCoords.reduce((sum: number, c: any) => sum + c[0], 0) / polyCoords.length;
+                latitude = polyCoords.reduce((sum: number, c: any) => sum + c[1], 0) / polyCoords.length;
+            }
+
+            const entity = this.viewer.entities.add({
+                position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
+                billboard: {
+                    image: this.createCartIcon(),
+                    verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                    horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+                    scale: 0.6,
+                    heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                },
+            });
+
+            this.selectedParcelEntities.push(entity);
+        }
+    }
+
+    private removeParcelHighlight(index: number) {
+        if (index >= 0 && index < this.selectedParcelEntities.length) {
+            const entity = this.selectedParcelEntities[index];
+            if (entity) {
+                this.viewer.entities.remove(entity);
+            }
+            this.selectedParcelEntities.splice(index, 1);
+        }
+    }
+
+    private clearAllHighlights() {
+        this.selectedParcelEntities.forEach((entity) => {
+            if (entity) {
+                this.viewer.entities.remove(entity);
+            }
+        });
+        this.selectedParcelEntities = [];
+    }
+
+    private createCartIcon(): string {
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return '';
+
+        // Draw shopping cart icon
+        ctx.fillStyle = '#4CAF50';
+        ctx.beginPath();
+        ctx.arc(16, 16, 14, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('✓', 16, 16);
+
+        return canvas.toDataURL();
+    }
+
+    private saveCartToStorage() {
+        try {
+            const cartData = this.selectedParcels.map((p) => p.properties);
+            localStorage.setItem('map_parcel_cart', JSON.stringify(cartData));
+        } catch (error) {
+            console.error('Error saving cart to localStorage:', error);
+        }
+    }
+
+    private loadCartFromStorage() {
+        try {
+            const stored = localStorage.getItem('map_parcel_cart');
+            if (stored) {
+                const cartData = JSON.parse(stored);
+                // Note: This would require re-fetching full feature data with geometry
+                console.log('📦 Cart data loaded from storage:', cartData.length, 'items');
+            }
+        } catch (error) {
+            console.error('Error loading cart from localStorage:', error);
+        }
     }
 }

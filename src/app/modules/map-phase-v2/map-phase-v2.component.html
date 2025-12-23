@@ -3,19 +3,58 @@
 
   <div class="search-panel">
     <div class="search-panel-content">
-      <p-autoComplete [(ngModel)]="searchQuery" [suggestions]="suggestions" (completeMethod)="search($event)"
-        (onSelect)="selectSearchResult($event)" field="name" placeholder="Search" [style]="{ width: '100%' }"
-        [inputStyle]="{ width: '100%' }">
-        <ng-template let-result pTemplate="item">
-          <div class="search-result-item-prime">
-            <svg cIcon [name]="result.icon" size="lg"></svg>
-            <div>
-              <b>{{ result.name }}</b>
-              <div class="type">{{ result.typeLabel }}</div>
+      <div class="search-header">
+        <p-autoComplete [(ngModel)]="searchQuery" [suggestions]="suggestions" (completeMethod)="search($event)"
+          (onSelect)="selectSearchResult($event)" field="name" placeholder="Search"
+          [style]="{ width: '100%', flex: '1' }" [inputStyle]="{ width: '100%' }">
+          <ng-template let-result pTemplate="item">
+            <div class="search-result-item-prime">
+              <svg cIcon [name]="result.icon" size="lg"></svg>
+              <div>
+                <b>{{ result.name }}</b>
+                <div class="type">{{ result.typeLabel }}</div>
+              </div>
+            </div>
+          </ng-template>
+        </p-autoComplete>
+        <button class="advanced-search-toggle" (click)="toggleAdvancedSearch()" [class.active]="advancedSearchExpanded"
+          title="Advanced Search">
+          <svg cIcon name="cilFilter" size="lg"></svg>
+        </button>
+      </div>
+
+      <!-- Advanced Search Panel -->
+      <div class="advanced-search-panel" *ngIf="advancedSearchExpanded">
+        <div class="advanced-search-section">
+          <label class="search-label">🔍 ค้นหากำแพงเพชร (MAPSHEET)</label>
+          <input type="text" class="parcel-search-input" [(ngModel)]="parcel1SearchQuery" (input)="searchParcel1()"
+            placeholder="ระบุ MAPSHEET เช่น 484114216...">
+          <div class="parcel-results" *ngIf="parcel1Results.length > 0">
+            <div class="parcel-result-item" *ngFor="let result of parcel1Results" (click)="selectParcelResult(result)">
+              <svg cIcon name="cilPin" size="sm"></svg>
+              <div class="result-info">
+                <div class="result-name">{{ result.name }}</div>
+                <div class="result-type">{{ result.typeLabel }}</div>
+              </div>
             </div>
           </div>
-        </ng-template>
-      </p-autoComplete>
+        </div>
+
+        <div class="advanced-search-section">
+          <label class="search-label">🔍 ค้นหาประเทศไทย (SHEET_ID)</label>
+          <input type="text" class="parcel-search-input" [(ngModel)]="parcel2SearchQuery" (input)="searchParcel2()"
+            placeholder="ระบุ SHEET_ID เช่น 53201...">
+          <div class="parcel-results" *ngIf="parcel2Results.length > 0">
+            <div class="parcel-result-item" *ngFor="let result of parcel2Results" (click)="selectParcelResult(result)">
+              <svg cIcon name="cilPin" size="sm"></svg>
+              <div class="result-info">
+                <div class="result-name">{{ result.name }}</div>
+                <div class="result-type">{{ result.typeLabel }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -145,6 +184,20 @@
                 <span class="layer-name">สถานที่ (POI)</span>
               </label>
             </div>
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.parcel1"
+                  (change)="toggleParcel1()" />
+                <span class="layer-name">กำแพงเพชร (เลขระวาง 1)</span>
+              </label>
+            </div>
+            <div class="layer-item">
+              <label class="layer-label">
+                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.parcel2"
+                  (change)="toggleParcel2()" />
+                <span class="layer-name">ประเทศไทย (เลขระวาง 2)</span>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -173,6 +226,46 @@
     </div>
   </div>
 
+  <!-- Shopping Cart Panel -->
+  <div class="cart-panel" [class.collapsed]="cartCollapsed">
+    <div class="panel-header" (click)="toggleCart()">
+      <h3 class="panel-title">
+        <span>🛒 Shopping Cart ({{ selectedParcels.length }})</span>
+      </h3>
+      <button class="toggle-button">
+        {{ cartCollapsed ? '+' : '−' }}
+      </button>
+    </div>
+
+    <div class="panel-content" *ngIf="!cartCollapsed">
+      <div class="cart-items" *ngIf="selectedParcels.length > 0">
+        <div class="cart-item" *ngFor="let parcel of selectedParcels; let i = index">
+          <div class="cart-item-info">
+            <div class="cart-item-name">
+              {{ parcel.properties?.PARCEL_NO || parcel.properties?.PARCEL_ID || 'Parcel ' + (i + 1) }}
+            </div>
+            <div class="cart-item-details">
+              {{ parcel.properties?.PARCEL_AREA || 'N/A' }}
+            </div>
+          </div>
+          <button class="remove-btn" (click)="removeFromCart(i)" title="Remove from cart">
+            ×
+          </button>
+        </div>
+      </div>
+
+      <div class="cart-empty" *ngIf="selectedParcels.length === 0">
+        <p>No parcels selected</p>
+        <p class="cart-hint">Click on parcel areas to add them to cart</p>
+      </div>
+
+      <div class="cart-actions" *ngIf="selectedParcels.length > 0">
+        <button class="cart-btn clear-btn" (click)="clearCart()">Clear All</button>
+        <button class="cart-btn export-btn" (click)="exportCart()">Export</button>
+      </div>
+    </div>
+  </div>
+
   <c-modal [visible]="modalVisible" (visibleChange)="handleModalChange($event)" alignment="top" class="modal-top-right">
     <c-modal-header>
       <h5 cModalTitle>{{
@@ -197,6 +290,13 @@
         </tbody>
       </table>
     </c-modal-body>
+    <c-modal-footer>
+      <button cButton color="success" (click)="addToCart(selectedFeature); closeModal()"
+        *ngIf="selectedFeature?.type === 'parcel1' || selectedFeature?.type === 'parcel2'">
+        🛒 เพิ่มลงตะกร้า
+      </button>
+      <button cButton color="secondary" (click)="closeModal()">ปิด</button>
+    </c-modal-footer>
   </c-modal>
 
 </div>
