@@ -2,63 +2,59 @@
   <div id="cesiumContainer"></div>
 
   <div class="search-panel">
-    <div class="search-panel-content">
-      <div class="search-header">
-        <p-autoComplete [(ngModel)]="searchQuery" [suggestions]="suggestions" (completeMethod)="search($event)"
-          (onSelect)="selectSearchResult($event)" field="name" placeholder="Search"
-          [style]="{ width: '100%', flex: '1' }" [inputStyle]="{ width: '100%' }">
-          <ng-template let-result pTemplate="item">
-            <div class="search-result-item-prime">
-              <svg cIcon [name]="result.icon" size="lg"></svg>
-              <div>
-                <b>{{ result.name }}</b>
-                <div class="type">{{ result.typeLabel }}</div>
-              </div>
+    <div class="search-header">
+      <p-autoComplete [(ngModel)]="searchQuery" [suggestions]="suggestions" (completeMethod)="search($event)"
+        (onSelect)="selectSearchResult($event)" field="name" placeholder="Search location..."
+        [style]="{ width: '100%', flex: '1' }" [inputStyle]="{ width: '100%' }">
+        <ng-template let-result pTemplate="item">
+          <div class="search-result-item-prime">
+            <svg cIcon [name]="result.icon" size="lg"></svg>
+            <div>
+              <b>{{ result.name }}</b>
+              <div class="type">{{ result.typeLabel }}</div>
             </div>
-          </ng-template>
-        </p-autoComplete>
-        <button class="advanced-search-toggle" (click)="toggleAdvancedSearch()" [class.active]="advancedSearchExpanded"
-          title="Advanced Search">
-          <svg cIcon name="cilFilter" size="lg"></svg>
-        </button>
-      </div>
+          </div>
+        </ng-template>
+      </p-autoComplete>
+      <button class="advanced-search-toggle" (click)="toggleAdvancedSearch()" [class.active]="advancedSearchExpanded"
+        title="Advanced Search">
+        <svg cIcon name="cilFilter" size="lg"></svg>
+      </button>
+    </div>
 
-      <!-- Advanced Search Panel -->
-      <div class="advanced-search-panel" *ngIf="advancedSearchExpanded">
-        <div class="advanced-search-section">
-          <label class="search-label">🔍 ค้นหากำแพงเพชร (MAPSHEET)</label>
-          <input type="text" class="parcel-search-input" [(ngModel)]="parcel1SearchQuery" (input)="searchParcel1()"
-            placeholder="ระบุ MAPSHEET เช่น 484114216...">
-          <div class="parcel-results" *ngIf="parcel1Results.length > 0">
-            <div class="parcel-result-item" *ngFor="let result of parcel1Results" (click)="selectParcelResult(result)">
-              <svg cIcon name="cilPin" size="sm"></svg>
-              <div class="result-info">
-                <div class="result-name">{{ result.name }}</div>
-                <div class="result-type">{{ result.typeLabel }}</div>
-              </div>
+    <!-- Advanced Search Panel -->
+    <div class="advanced-search-panel" *ngIf="advancedSearchExpanded">
+      <div class="advanced-search-section">
+        <label class="search-label">🔍 ค้นหากำแพงเพชร (MAPSHEET)</label>
+        <input type="text" class="parcel-search-input" [(ngModel)]="parcel1SearchQuery" (input)="searchParcel1()"
+          placeholder="ระบุ MAPSHEET เช่น 484114216...">
+        <div class="parcel-results" *ngIf="parcel1Results.length > 0">
+          <div class="parcel-result-item" *ngFor="let result of parcel1Results" (click)="selectParcelResult(result)">
+            <svg cIcon name="cilPin" size="sm"></svg>
+            <div class="result-info">
+              <div class="result-name">{{ result.name }}</div>
+              <div class="result-type">{{ result.typeLabel }}</div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="advanced-search-section">
-          <label class="search-label">🔍 ค้นหาประเทศไทย (SHEET_ID)</label>
-          <input type="text" class="parcel-search-input" [(ngModel)]="parcel2SearchQuery" (input)="searchParcel2()"
-            placeholder="ระบุ SHEET_ID เช่น 53201...">
-          <div class="parcel-results" *ngIf="parcel2Results.length > 0">
-            <div class="parcel-result-item" *ngFor="let result of parcel2Results" (click)="selectParcelResult(result)">
-              <svg cIcon name="cilPin" size="sm"></svg>
-              <div class="result-info">
-                <div class="result-name">{{ result.name }}</div>
-                <div class="result-type">{{ result.typeLabel }}</div>
-              </div>
+      <div class="advanced-search-section">
+        <label class="search-label">🔍 ค้นหาประเทศไทย (SHEET_ID)</label>
+        <input type="text" class="parcel-search-input" [(ngModel)]="parcel2SearchQuery" (input)="searchParcel2()"
+          placeholder="ระบุ SHEET_ID เช่น 53201...">
+        <div class="parcel-results" *ngIf="parcel2Results.length > 0">
+          <div class="parcel-result-item" *ngFor="let result of parcel2Results" (click)="selectParcelResult(result)">
+            <svg cIcon name="cilPin" size="sm"></svg>
+            <div class="result-info">
+              <div class="result-name">{{ result.name }}</div>
+              <div class="result-type">{{ result.typeLabel }}</div>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-
-
 
   <div class="layer-control-panel" [class.collapsed]="panelCollapsed">
     <div class="panel-header" (click)="togglePanel()">
@@ -256,12 +252,24 @@
 
       <div class="cart-empty" *ngIf="selectedParcels.length === 0">
         <p>No parcels selected</p>
-        <p class="cart-hint">Click on parcel areas to add them to cart</p>
+        <div class="empty-cart" *ngIf="selectedParcels.length === 0">
+          <p>ไม่มีรายการในตะกร้า</p>
+        </div>
       </div>
 
-      <div class="cart-actions" *ngIf="selectedParcels.length > 0">
-        <button class="cart-btn clear-btn" (click)="clearCart()">Clear All</button>
-        <button class="cart-btn export-btn" (click)="exportCart()">Export</button>
+      <div class="panel-actions" *ngIf="selectedParcels.length > 0">
+        <button cButton color="danger" size="sm" (click)="exportCartAsPDF()">
+          Export PDF
+        </button>
+        <button cButton color="info" size="sm" (click)="exportMapAsImage()">
+          Export Map
+        </button>
+        <button cButton color="success" size="sm" (click)="exportCart()">
+          Export JSON
+        </button>
+        <button cButton color="secondary" size="sm" (click)="clearCart()">
+          Clear
+        </button>
       </div>
     </div>
   </div>

@@ -883,13 +883,38 @@
         }
     }
 
-    .cart-actions {
+    // Phase 3: Export Actions (CoreUI Buttons)
+    .panel-actions {
         display: flex;
         gap: 8px;
-        padding-top: 12px;
+        padding: 12px;
         border-top: 1px solid #e8eaed;
-        margin-top: 12px;
+        background: #f8f9fa;
+        flex-wrap: wrap;
+
+        button {
+            flex: 1;
+            min-width: 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 13px;
+            white-space: nowrap;
+
+            svg {
+                flex-shrink: 0;
+            }
+        }
     }
+}
+
+.cart-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #e8eaed;
+    margin-top: 12px;
 
     .cart-btn {
         flex: 1;

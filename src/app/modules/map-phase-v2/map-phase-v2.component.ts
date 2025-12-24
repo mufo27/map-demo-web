@@ -3,7 +3,22 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalModule, ButtonModule, CardModule, GridModule, TableModule } from '@coreui/angular';
 import { IconModule, IconSetService } from '@coreui/icons-angular';
-import { cilMap, cilLocationPin, cilPin, cilBuilding, cilCursor, cilChevronRight, cilChevronBottom, cilFilter } from '@coreui/icons';
+import {
+    cilMap,
+    cilLocationPin,
+    cilPin,
+    cilBuilding,
+    cilCursor,
+    cilChevronRight,
+    cilChevronBottom,
+    cilFilter,
+    cilFile,
+    cilImage,
+    cilSave,
+    cilTrash,
+} from '@coreui/icons';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import * as Cesium from 'cesium';
 
@@ -29,6 +44,10 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             cilChevronRight,
             cilChevronBottom,
             cilFilter,
+            cilFile,
+            cilImage,
+            cilSave,
+            cilTrash,
         };
     }
 
@@ -1089,5 +1108,202 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         } catch (error) {
             console.error('Error loading cart from localStorage:', error);
         }
+    }
+
+    // =====================================================
+    // PHASE 3: WATERMARK EXPORT METHODS
+    // =====================================================
+
+    /**
+     * Export current map view as PNG image with watermark
+     */
+    async exportMapAsImage() {
+        try {
+            const cesiumContainer = document.querySelector('.cesium-viewer') as HTMLElement;
+            if (!cesiumContainer) {
+                alert('ไม่พบแผนที่');
+                return;
+            }
+
+            // Capture map screenshot
+            const canvas = await html2canvas(cesiumContainer, {
+                useCORS: true,
+                allowTaint: true,
+                logging: false,
+            });
+
+            // Add watermark
+            const watermarkedCanvas = this.addWatermarkToCanvas(canvas, 'Transport Map Demo');
+
+            // Download image
+            watermarkedCanvas.toBlob((blob) => {
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `transport-map-${new Date().getTime()}.png`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                }
+            });
+
+            console.log('✅ Map exported successfully');
+        } catch (error) {
+            console.error('❌ Error exporting map:', error);
+            alert('เกิดข้อผิดพลาดในการ export แผนที่');
+        }
+    }
+
+    /**
+     * Export shopping cart as PDF with watermark
+     */
+    async exportCartAsPDF() {
+        if (this.selectedParcels.length === 0) {
+            alert('ไม่มีรายการในตะกร้า');
+            return;
+        }
+
+        try {
+            const pdf = new jsPDF();
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            // Add diagonal watermark to each page
+            this.addWatermarkToPDF(pdf, 'IA Group company');
+
+            // Header
+            pdf.setFontSize(18);
+            pdf.text('Demo Map - IA Group company', pageWidth / 2, 20, { align: 'center' });
+
+            pdf.setFontSize(10);
+            const dateStr = new Date().toLocaleDateString('th-TH');
+            pdf.text(`Date: ${dateStr}`, pageWidth / 2, 28, { align: 'center' });
+
+            // Table header
+            let yPosition = 40;
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('#', 15, yPosition);
+            pdf.text('Parcel ID', 30, yPosition);
+            pdf.text('Layer', 90, yPosition);
+            pdf.text('Area', 130, yPosition);
+
+            // Draw line under header
+            pdf.line(15, yPosition + 2, pageWidth - 15, yPosition + 2);
+            yPosition += 10;
+
+            // Table content
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(10);
+
+            this.selectedParcels.forEach((parcel, index) => {
+                // Check if need new page
+                if (yPosition > pageHeight - 30) {
+                    pdf.addPage();
+                    this.addWatermarkToPDF(pdf, 'IA Group company');
+                    yPosition = 20;
+                }
+
+                const parcelId = parcel.properties?.MAPSHEET || parcel.properties?.SHEET_ID || `Parcel ${index + 1}`;
+                const layer = parcel.type === 'parcel1' ? 'กำแพงเพชร' : 'ประเทศไทย';
+                const area = parcel.properties?.AREA || 'N/A';
+
+                pdf.text(`${index + 1}`, 15, yPosition);
+                pdf.text(String(parcelId), 30, yPosition);
+                pdf.text(layer, 90, yPosition);
+                pdf.text(String(area), 130, yPosition);
+
+                yPosition += 8;
+            });
+
+            // Footer
+            pdf.line(15, yPosition + 5, pageWidth - 15, yPosition + 5);
+            yPosition += 15;
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(`Total: ${this.selectedParcels.length} parcel(s)`, 15, yPosition);
+
+            // Save PDF
+            pdf.save(`transport-parcels-${new Date().getTime()}.pdf`);
+            console.log('✅ PDF exported successfully');
+        } catch (error) {
+            console.error('❌ Error exporting PDF:', error);
+            alert('เกิดข้อผิดพลาดในการ export PDF');
+        }
+    }
+
+    /**
+     * Add watermark to canvas
+     */
+    private addWatermarkToCanvas(sourceCanvas: HTMLCanvasElement, watermarkText: string): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = sourceCanvas.width;
+        canvas.height = sourceCanvas.height;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) return sourceCanvas;
+
+        // Draw original image
+        ctx.drawImage(sourceCanvas, 0, 0);
+
+        // Add watermark
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.font = 'bold 48px Arial';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Diagonal watermark pattern
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(-Math.PI / 4);
+
+        const textWidth = ctx.measureText(watermarkText).width;
+        const spacing = textWidth + 100;
+
+        for (let x = -canvas.width; x < canvas.width; x += spacing) {
+            for (let y = -canvas.height; y < canvas.height; y += 150) {
+                ctx.fillText(watermarkText, x, y);
+            }
+        }
+
+        ctx.restore();
+
+        // Add bottom-right watermark
+        ctx.globalAlpha = 0.5;
+        ctx.font = 'bold 24px Arial';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(watermarkText, canvas.width - 150, canvas.height - 30);
+
+        return canvas;
+    }
+
+    /**
+     * Add diagonal watermark to PDF - Multiple repeating pattern
+     */
+    private addWatermarkToPDF(pdf: jsPDF, watermarkText: string) {
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        pdf.saveGraphicsState();
+        // @ts-ignore - jsPDF GState typing issue
+        pdf.setGState(new pdf.GState({ opacity: 0.15 })); // Increased opacity from 0.1 to 0.15
+        pdf.setTextColor(150, 150, 150);
+        pdf.setFontSize(40); // Reduced from 60 to allow more repetitions
+
+        // Create repeating diagonal watermark pattern
+        const spacing = 80; // Spacing between watermarks
+
+        // Rotate and repeat watermark across entire page
+        for (let x = -pageWidth; x < pageWidth * 2; x += spacing) {
+            for (let y = -pageHeight; y < pageHeight * 2; y += spacing) {
+                pdf.text(watermarkText, x, y, {
+                    align: 'center',
+                    angle: 45,
+                });
+            }
+        }
+
+        pdf.restoreGraphicsState();
     }
 }
