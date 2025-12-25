@@ -134,6 +134,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     selectedParcels: any[] = [];
     cartVisible = false;
     cartCollapsed = true;
+    checkoutModalVisible = false;
     private selectedParcelEntities: Cesium.Entity[] = [];
 
     // Zoom level thresholds (in meters) - Based on camera height from globe
@@ -1013,6 +1014,17 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         const exists = this.selectedParcels.find((p) => JSON.stringify(p.properties) === JSON.stringify(feature.properties));
 
         if (!exists) {
+            // Add layerName based on type
+            const layerNames: { [key: string]: string } = {
+                parcel1: 'transport-kamphaeng_phet_4k',
+                parcel2: 'transport-thailand',
+                parcel3: 'transport-kamphaeng_phet_25k',
+            };
+            const layerName = layerNames[feature.type] || 'unknown';
+            const featureId = feature.properties?.fid || feature.properties?.FID || feature.properties?.MAPSHEET || Math.floor(Math.random() * 10000);
+
+            feature.layerName = `${layerName}.${featureId}`;
+
             this.selectedParcels.push(feature);
             this.highlightParcel(feature);
             console.log('📦 Added to cart:', feature);
@@ -1040,6 +1052,38 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
 
         // Save to localStorage
         this.saveCartToStorage();
+    }
+
+    // Checkout Modal Methods
+    openCheckoutModal() {
+        if (this.selectedParcels.length === 0) {
+            alert('ไม่มีรายการในตะกร้า');
+            return;
+        }
+        this.checkoutModalVisible = true;
+    }
+
+    handleCheckoutModalChange(event: boolean) {
+        this.checkoutModalVisible = event;
+    }
+
+    confirmOrder() {
+        alert(
+            `สั่งซื้อสำเร็จ!\n\nจำนวน: ${this.selectedParcels.length} รายการ\nราคารวม: ฿${(
+                this.selectedParcels.length * 10000
+            ).toLocaleString()}\n\nกรุณาโอนเงินเข้าบัญชีที่ระบุ`
+        );
+        this.checkoutModalVisible = false;
+        this.clearCart();
+    }
+
+    getParcelTypeName(type: string): string {
+        const typeNames: { [key: string]: string } = {
+            parcel1: 'จังหวัดกำแพงเพชร (4k)',
+            parcel2: 'ประเทศไทย (สปภ.)',
+            parcel3: 'จังหวัดกำแพงเพชร (25k)',
+        };
+        return typeNames[type] || type;
     }
 
     exportCart() {

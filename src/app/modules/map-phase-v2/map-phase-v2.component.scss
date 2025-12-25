@@ -61,9 +61,10 @@
 // Cart Panel Positioning
 .cart-panel {
     position: absolute;
-    top: 20px;
-    left: 640px; /* 330 + 300 + 10 gap */
-    width: 300px;
+    top: 60px; /* Lowered to avoid blocking home icon */
+    right: 20px; /* Moved to right side */
+    left: auto;
+    width: 350px; /* Increased width */
     z-index: 999;
     transition: all 0.3s ease;
 
