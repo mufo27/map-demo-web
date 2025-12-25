@@ -1,263 +1,294 @@
 <div class="map-wrapper">
   <div id="cesiumContainer"></div>
 
-  <div class="search-panel">
-    <div class="search-header">
-      <p-autoComplete [(ngModel)]="searchQuery" [suggestions]="suggestions" (completeMethod)="search($event)"
-        (onSelect)="selectSearchResult($event)" field="name" placeholder="Search location..."
-        [style]="{ width: '100%', flex: '1' }" [inputStyle]="{ width: '100%' }">
-        <ng-template let-result pTemplate="item">
-          <div class="search-result-item-prime">
-            <svg cIcon [name]="result.icon" size="lg"></svg>
-            <div>
-              <b>{{ result.name }}</b>
-              <div class="type">{{ result.typeLabel }}</div>
-            </div>
-          </div>
-        </ng-template>
-      </p-autoComplete>
-      <button class="advanced-search-toggle" (click)="toggleAdvancedSearch()" [class.active]="advancedSearchExpanded"
-        title="Advanced Search">
-        <svg cIcon name="cilFilter" size="lg"></svg>
+  <c-card class="search-panel mb-3" [ngClass]="{'collapsed': searchPanelCollapsed}">
+    <c-card-header class="d-flex justify-content-between align-items-center p-2" (click)="toggleSearchPanel()"
+      style="cursor: pointer;">
+      <h6 class="m-0 d-flex align-items-center gap-2 small fw-bold">
+        <span>Search</span>
+      </h6>
+      <button cButton color="secondary" variant="ghost" size="sm" class="p-0 text-decoration-none">
+        {{ searchPanelCollapsed ? '+' : '−' }}
       </button>
-    </div>
+    </c-card-header>
 
-    <!-- Advanced Search Panel -->
-    <div class="advanced-search-panel" *ngIf="advancedSearchExpanded">
-      <div class="advanced-search-section">
-        <label class="search-label">🔍 ค้นหากำแพงเพชร (MAPSHEET)</label>
-        <input type="text" class="parcel-search-input" [(ngModel)]="parcel1SearchQuery" (input)="searchParcel1()"
-          placeholder="ระบุ MAPSHEET เช่น 484114216...">
-        <div class="parcel-results" *ngIf="parcel1Results.length > 0">
-          <div class="parcel-result-item" *ngFor="let result of parcel1Results" (click)="selectParcelResult(result)">
-            <svg cIcon name="cilPin" size="sm"></svg>
-            <div class="result-info">
-              <div class="result-name">{{ result.name }}</div>
-              <div class="result-type">{{ result.typeLabel }}</div>
+    <c-card-body *ngIf="!searchPanelCollapsed" class="p-3">
+      <!-- Main Search Field -->
+      <div class="search-main-section mb-2">
+        <label class="form-label small fw-bold text-muted mb-1">Location</label>
+        <p-autoComplete [(ngModel)]="searchQuery" [suggestions]="suggestions" (completeMethod)="search($event)"
+          (onSelect)="selectSearchResult($event)" field="name" placeholder="" [style]="{ width: '100%' }"
+          [inputStyle]="{ width: '100%', height: '32px', fontSize: '13px' }" styleClass="w-100">
+          <ng-template let-result pTemplate="item">
+            <div class="d-flex align-items-center gap-2">
+              <svg cIcon [name]="result.icon" size="lg"></svg>
+              <div>
+                <b class="d-block text-dark">{{ result.name }}</b>
+                <div class="text-secondary small">{{ result.typeLabel }}</div>
+              </div>
             </div>
-          </div>
-        </div>
+          </ng-template>
+        </p-autoComplete>
       </div>
 
-      <div class="advanced-search-section">
-        <label class="search-label">🔍 ค้นหาประเทศไทย (SHEET_ID)</label>
-        <input type="text" class="parcel-search-input" [(ngModel)]="parcel2SearchQuery" (input)="searchParcel2()"
-          placeholder="ระบุ SHEET_ID เช่น 53201...">
-        <div class="parcel-results" *ngIf="parcel2Results.length > 0">
-          <div class="parcel-result-item" *ngFor="let result of parcel2Results" (click)="selectParcelResult(result)">
-            <svg cIcon name="cilPin" size="sm"></svg>
-            <div class="result-info">
-              <div class="result-name">{{ result.name }}</div>
-              <div class="result-type">{{ result.typeLabel }}</div>
-            </div>
-          </div>
+      <!-- Advanced Search Toggle -->
+      <div class="text-end py-2 ">
+        <a class="text-decoration-none fw-bold small" style="cursor: pointer; color: var(--cui-primary);"
+          (click)="toggleAdvancedSearch()">
+          <!-- {{ advancedSearchExpanded ? 'ซ่อน' : 'Advanced' }} -->
+          Advanced
+        </a>
+      </div>
+
+      <!-- Advanced Search Panel -->
+      <div class="advanced-search-panel mt-3" *ngIf="advancedSearchExpanded">
+
+        <div class="mb-2">
+          <label class="form-label small fw-bold text-muted mb-1">เลขระวาง ประเทศไทย (สปภ.)</label>
+          <p-autoComplete [(ngModel)]="parcel2SearchQuery" [suggestions]="parcel2Results"
+            (completeMethod)="searchParcel2()" (onSelect)="selectParcelResult($event)" field="name" placeholder=""
+            [style]="{ width: '100%' }" [inputStyle]="{ width: '100%', height: '32px', fontSize: '13px' }"
+            styleClass="w-100">
+            <ng-template let-result pTemplate="item">
+              <div class="d-flex align-items-center gap-2">
+                <svg cIcon name="cilLocationPin" size="lg" class="text-secondary"></svg>
+                <div>
+                  <b class="d-block text-dark">{{ result.name }}</b>
+                  <div class="text-secondary small">{{ result.typeLabel }}</div>
+                </div>
+              </div>
+            </ng-template>
+          </p-autoComplete>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label small fw-bold text-muted mb-1">เลขระวาง จ.กำแพงเพชร (4k)</label>
+          <p-autoComplete [(ngModel)]="parcel1SearchQuery" [suggestions]="parcel1Results"
+            (completeMethod)="searchParcel1()" (onSelect)="selectParcelResult($event)" field="name" placeholder="."
+            [style]="{ width: '100%' }" [inputStyle]="{ width: '100%', height: '32px', fontSize: '13px' }"
+            styleClass="w-100">
+            <ng-template let-result pTemplate="item">
+              <div class="d-flex align-items-center gap-2">
+                <svg cIcon name="cilLocationPin" size="lg" class="text-secondary"></svg>
+                <div>
+                  <b class="d-block text-dark">{{ result.name }}</b>
+                  <div class="text-secondary small">{{ result.typeLabel }}</div>
+                </div>
+              </div>
+            </ng-template>
+          </p-autoComplete>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label small fw-bold text-muted mb-1">เลขระวาง จ.กำแพงเพชร (25k)</label>
+          <p-autoComplete [(ngModel)]="parcel3SearchQuery" [suggestions]="parcel3Results"
+            (completeMethod)="searchParcel3()" (onSelect)="selectParcelResult($event)" field="name" placeholder=""
+            [style]="{ width: '100%' }" [inputStyle]="{ width: '100%', height: '32px', fontSize: '13px' }"
+            styleClass="w-100">
+            <ng-template let-result pTemplate="item">
+              <div class="d-flex align-items-center gap-2">
+                <svg cIcon name="cilLocationPin" size="lg" class="text-secondary"></svg>
+                <div>
+                  <b class="d-block text-dark">{{ result.name }}</b>
+                  <div class="text-secondary small">{{ result.typeLabel }}</div>
+                </div>
+              </div>
+            </ng-template>
+          </p-autoComplete>
         </div>
       </div>
-    </div>
-  </div>
+    </c-card-body>
+  </c-card>
 
-  <div class="layer-control-panel" [class.collapsed]="panelCollapsed">
-    <div class="panel-header" (click)="togglePanel()">
-      <h3 class="panel-title">
+  <c-card class="layer-control-panel mb-3" [ngClass]="{'collapsed': panelCollapsed}">
+    <c-card-header class="d-flex justify-content-between align-items-center p-2" (click)="togglePanel()"
+      style="cursor: pointer;">
+      <h6 class="m-0 d-flex align-items-center gap-2 small fw-bold">
         <span>Layer Control</span>
-      </h3>
-      <button class="toggle-button">
+      </h6>
+      <button cButton color="secondary" variant="ghost" size="sm" class="p-0 text-decoration-none">
         {{ panelCollapsed ? '+' : '−' }}
       </button>
-    </div>
+    </c-card-header>
 
-    <div class="panel-content" *ngIf="!panelCollapsed">
+    <c-card-body *ngIf="!panelCollapsed" class="p-3" style="max-height: calc(100vh - 140px); overflow-y: auto;">
       <div class="layer-controls">
 
         <!-- Tier 0: Globe/Ellipsoid -->
-        <div class="tier-section">
-          <div class="tier-header">
-            <input type="checkbox" class="tier-checkbox" [(ngModel)]="tierControls.tier0" (change)="toggleTier0()" />
-            <span class="tier-name">🌍 Tier 0: Globe (Ellipsoid)</span>
+        <div class="tier-section mb-3">
+          <div class="d-flex align-items-center p-2 bg-light border-start border-3 border-primary rounded mb-2">
+            <input type="checkbox" class="form-check-input me-2" [(ngModel)]="tierControls.tier0"
+              (change)="toggleTier0()" />
+            <span class="fw-bold text-primary">🌍 Tier 0: Globe (Ellipsoid)</span>
           </div>
         </div>
 
         <!-- Tier 1: Terrain -->
-        <div class="tier-section">
-          <div class="tier-header">
-            <input type="checkbox" class="tier-checkbox" [(ngModel)]="tierControls.tier1" (change)="toggleTier1()" />
-            <span class="tier-name">🗻 Tier 1: </span>
+        <div class="tier-section mb-3">
+          <div class="d-flex align-items-center p-2 bg-light border-start border-3 border-primary rounded mb-2">
+            <input type="checkbox" class="form-check-input me-2" [(ngModel)]="tierControls.tier1"
+              (change)="toggleTier1()" />
+            <span class="fw-bold text-primary">🗻 Tier 1: </span>
           </div>
         </div>
 
         <!-- Tier 2: Imagery -->
-        <div class="tier-section">
-          <div class="tier-header">
-            <input type="checkbox" class="tier-checkbox" [(ngModel)]="tierControls.tier2" (change)="toggleTier2()" />
-            <span class="tier-name tier-clickable" (click)="toggleTier2Collapse()">
-              <svg cIcon [name]="tierCollapsed.tier2 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"
-                class="tier-toggle-icon"></svg>
+        <div class="tier-section mb-3">
+          <div class="d-flex align-items-center p-2 bg-light border-start border-3 border-primary rounded mb-2">
+            <input type="checkbox" class="form-check-input me-2" [(ngModel)]="tierControls.tier2"
+              (change)="toggleTier2()" />
+            <span class="fw-bold text-primary d-flex align-items-center gap-2" style="cursor: pointer;"
+              (click)="toggleTier2Collapse()">
+              <svg cIcon [name]="tierCollapsed.tier2 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"></svg>
               🗺️ Tier 2:
             </span>
           </div>
-          <div class="tier-layers" *ngIf="!tierCollapsed.tier2">
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.openStreetMap"
-                  (change)="toggleOpenStreetMap()" />
-                <span class="layer-name">Open Street Map</span>
-              </label>
+          <div class="ms-4 ps-2 border-start" *ngIf="!tierCollapsed.tier2">
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerControlOSM"
+                [(ngModel)]="layerControls.openStreetMap" (change)="toggleOpenStreetMap()" />
+              <label class="form-check-label" for="layerControlOSM">Open Street Map</label>
             </div>
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.googleSatellite"
-                  (change)="toggleGoogleSatellite()" />
-                <span class="layer-name">Google Satellite</span>
-              </label>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerControlSat"
+                [(ngModel)]="layerControls.googleSatellite" (change)="toggleGoogleSatellite()" />
+              <label class="form-check-label" for="layerControlSat">Google Satellite</label>
             </div>
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.openStreetMapSelf"
-                  (change)="toggleOpenStreetMapSelf()" />
-                <span class="layer-name">Open Street Map (Self)</span>
-              </label>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerControlOSMSelf"
+                [(ngModel)]="layerControls.openStreetMapSelf" (change)="toggleOpenStreetMapSelf()" />
+              <label class="form-check-label" for="layerControlOSMSelf">Open Street Map (Self)</label>
             </div>
           </div>
         </div>
 
         <!-- Tier 3: Vector/Features -->
-        <div class="tier-section">
-          <div class="tier-header">
-            <input type="checkbox" class="tier-checkbox" [(ngModel)]="tierControls.tier3" (change)="toggleTier3()" />
-            <span class="tier-name tier-clickable" (click)="toggleTier3Collapse()">
-              <svg cIcon [name]="tierCollapsed.tier3 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"
-                class="tier-toggle-icon"></svg>
+        <div class="tier-section mb-3">
+          <div class="d-flex align-items-center p-2 bg-light border-start border-3 border-primary rounded mb-2">
+            <input type="checkbox" class="form-check-input me-2" [(ngModel)]="tierControls.tier3"
+              (change)="toggleTier3()" />
+            <span class="fw-bold text-primary d-flex align-items-center gap-2" style="cursor: pointer;"
+              (click)="toggleTier3Collapse()">
+              <svg cIcon [name]="tierCollapsed.tier3 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"></svg>
               📍 Tier 3:
             </span>
           </div>
-          <div class="tier-layers" *ngIf="!tierCollapsed.tier3">
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.provinceBoundaries"
-                  (change)="toggleProvinceBoundaries()" />
-                <span class="layer-name">ขอบเขตจังหวัด</span>
-              </label>
+          <div class="ms-4 ps-2 border-start" *ngIf="!tierCollapsed.tier3">
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerProv"
+                [(ngModel)]="layerControls.provinceBoundaries" (change)="toggleProvinceBoundaries()" />
+              <label class="form-check-label" for="layerProv">ขอบเขตจังหวัด</label>
             </div>
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.districtBoundaries"
-                  (change)="toggleDistrictBoundaries()" />
-                <span class="layer-name">ขอบเขตอำเภอ</span>
-              </label>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerDist"
+                [(ngModel)]="layerControls.districtBoundaries" (change)="toggleDistrictBoundaries()" />
+              <label class="form-check-label" for="layerDist">ขอบเขตอำเภอ</label>
             </div>
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.subDistrictBoundaries"
-                  (change)="toggleSubDistrictBoundaries()" />
-                <span class="layer-name">ขอบเขตตำบล</span>
-              </label>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerSubDist"
+                [(ngModel)]="layerControls.subDistrictBoundaries" (change)="toggleSubDistrictBoundaries()" />
+              <label class="form-check-label" for="layerSubDist">ขอบเขตตำบล</label>
             </div>
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.waterways"
-                  (change)="toggleWaterways()" />
-                <span class="layer-name">คลอง/ทางน้ำ</span>
-              </label>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerWater" [(ngModel)]="layerControls.waterways"
+                (change)="toggleWaterways()" />
+              <label class="form-check-label" for="layerWater">คลอง/ทางน้ำ</label>
             </div>
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.railways"
-                  (change)="toggleRailways()" />
-                <span class="layer-name">รางรถไฟ</span>
-              </label>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerRail" [(ngModel)]="layerControls.railways"
+                (change)="toggleRailways()" />
+              <label class="form-check-label" for="layerRail">รางรถไฟ</label>
             </div>
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.roads"
-                  (change)="toggleRoads()" />
-                <span class="layer-name">ถนน</span>
-              </label>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerRoad" [(ngModel)]="layerControls.roads"
+                (change)="toggleRoads()" />
+              <label class="form-check-label" for="layerRoad">ถนน</label>
             </div>
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.pois"
-                  (change)="togglePOIs()" />
-                <span class="layer-name">สถานที่ (POI)</span>
-              </label>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerPois" [(ngModel)]="layerControls.pois"
+                (change)="togglePOIs()" />
+              <label class="form-check-label" for="layerPois">สถานที่ (POI)</label>
             </div>
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.parcel1"
-                  (change)="toggleParcel1()" />
-                <span class="layer-name">กำแพงเพชร (เลขระวาง 1)</span>
-              </label>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerParcel2" [(ngModel)]="layerControls.parcel2"
+                (change)="toggleParcel2()" />
+              <label class="form-check-label" for="layerParcel2">เลขระวาง ประเทศไทย (สปภ.)</label>
             </div>
-            <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.parcel2"
-                  (change)="toggleParcel2()" />
-                <span class="layer-name">ประเทศไทย (เลขระวาง 2)</span>
-              </label>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerParcel1" [(ngModel)]="layerControls.parcel1"
+                (change)="toggleParcel1()" />
+              <label class="form-check-label" for="layerParcel1">เลขระวาง จังหวัดกำแพงเพชร (4k)</label>
+            </div>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerParcel3" [(ngModel)]="layerControls.parcel3"
+                (change)="toggleParcel3()" />
+              <label class="form-check-label" for="layerParcel3">เลขระวาง จังหวัดกำแพงเพชร (25k)</label>
             </div>
           </div>
         </div>
 
         <!-- Tier 4: 3D Tiles/Buildings -->
-        <div class="tier-section">
-          <div class="tier-header">
-            <input type="checkbox" class="tier-checkbox" [(ngModel)]="tierControls.tier4" (change)="toggleTier4()" />
-            <span class="tier-name tier-clickable" (click)="toggleTier4Collapse()">
-              <svg cIcon [name]="tierCollapsed.tier4 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"
-                class="tier-toggle-icon"></svg>
+        <div class="tier-section mb-3">
+          <div class="d-flex align-items-center p-2 bg-light border-start border-3 border-primary rounded mb-2">
+            <input type="checkbox" class="form-check-input me-2" [(ngModel)]="tierControls.tier4"
+              (change)="toggleTier4()" />
+            <span class="fw-bold text-primary d-flex align-items-center gap-2" style="cursor: pointer;"
+              (click)="toggleTier4Collapse()">
+              <svg cIcon [name]="tierCollapsed.tier4 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"></svg>
               🏢 Tier 4:
             </span>
           </div>
-          <div class="tier-layers" *ngIf="!tierCollapsed.tier4">
-            <!-- <div class="layer-item">
-              <label class="layer-label">
-                <input type="checkbox" class="layer-checkbox" [(ngModel)]="layerControls.buildings"
-                  (change)="toggleBuildings()" />
-                <span class="layer-name">อาคาร/สิ่งปลูกสร้าง</span>
-              </label>
+          <div class="ms-4 ps-2 border-start" *ngIf="!tierCollapsed.tier4">
+            <!-- <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerBuild" [(ngModel)]="layerControls.buildings"
+                (change)="toggleBuildings()" />
+              <label class="form-check-label" for="layerBuild">อาคาร/สิ่งปลูกสร้าง</label>
             </div> -->
           </div>
         </div>
 
       </div>
-    </div>
-  </div>
+    </c-card-body>
+  </c-card>
 
   <!-- Shopping Cart Panel -->
-  <div class="cart-panel" [class.collapsed]="cartCollapsed">
-    <div class="panel-header" (click)="toggleCart()">
-      <h3 class="panel-title">
-        <span>🛒 Shopping Cart ({{ selectedParcels.length }})</span>
-      </h3>
-      <button class="toggle-button">
+  <c-card class="cart-panel" [ngClass]="{'collapsed': cartCollapsed}">
+    <c-card-header class="d-flex justify-content-between align-items-center p-2" (click)="toggleCart()"
+      style="cursor: pointer;">
+      <h6 class="m-0 d-flex align-items-center gap-2 small fw-bold">
+        <span>Shopping Cart ({{ selectedParcels.length }})</span>
+      </h6>
+      <button cButton color="secondary" variant="ghost" size="sm" class="p-0 text-decoration-none">
         {{ cartCollapsed ? '+' : '−' }}
       </button>
-    </div>
+    </c-card-header>
 
-    <div class="panel-content" *ngIf="!cartCollapsed">
-      <div class="cart-items" *ngIf="selectedParcels.length > 0">
-        <div class="cart-item" *ngFor="let parcel of selectedParcels; let i = index">
+    <c-card-body *ngIf="!cartCollapsed" class="p-3">
+      <div class="cart-items" *ngIf="selectedParcels.length > 0" style="max-height: 250px; overflow-y: auto;">
+        <div class="cart-item d-flex align-items-center justify-content-between p-2 border-bottom"
+          *ngFor="let parcel of selectedParcels; let i = index">
           <div class="cart-item-info">
-            <div class="cart-item-name">
+            <div class="fw-bold small text-dark">
               {{ parcel.properties?.PARCEL_NO || parcel.properties?.PARCEL_ID || 'Parcel ' + (i + 1) }}
             </div>
-            <div class="cart-item-details">
+            <div class="text-muted small">
               {{ parcel.properties?.PARCEL_AREA || 'N/A' }}
             </div>
           </div>
-          <button class="remove-btn" (click)="removeFromCart(i)" title="Remove from cart">
+          <button cButton color="danger" variant="ghost" size="sm" (click)="removeFromCart(i)" title="Remove from cart">
             ×
           </button>
         </div>
       </div>
 
-      <div class="cart-empty" *ngIf="selectedParcels.length === 0">
-        <p>No parcels selected</p>
-        <div class="empty-cart" *ngIf="selectedParcels.length === 0">
-          <p>ไม่มีรายการในตะกร้า</p>
-        </div>
+      <div class="text-center py-4 text-muted" *ngIf="selectedParcels.length === 0">
+        <p class="m-0">No parcels selected</p>
+        <!-- <div class="empty-cart" *ngIf="selectedParcels.length === 0">
+          <p class="m-0 small">ไม่มีรายการในตะกร้า</p>
+        </div> -->
       </div>
 
-      <div class="panel-actions" *ngIf="selectedParcels.length > 0">
+      <div class="d-flex flex-wrap gap-2 mt-3" *ngIf="selectedParcels.length > 0">
         <button cButton color="danger" size="sm" (click)="exportCartAsPDF()">
           Export PDF
         </button>
@@ -271,8 +302,8 @@
           Clear
         </button>
       </div>
-    </div>
-  </div>
+    </c-card-body>
+  </c-card>
 
   <c-modal [visible]="modalVisible" (visibleChange)="handleModalChange($event)" alignment="top" class="modal-top-right">
     <c-modal-header>

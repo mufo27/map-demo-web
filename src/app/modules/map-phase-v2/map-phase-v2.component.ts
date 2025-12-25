@@ -64,6 +64,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         buildings: null as Cesium.ImageryLayer | null,
         parcel1: null as Cesium.ImageryLayer | null,
         parcel2: null as Cesium.ImageryLayer | null,
+        parcel3: null as Cesium.ImageryLayer | null,
 
         openStreetMapSelf: null as Cesium.ImageryLayer | null,
     };
@@ -81,6 +82,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         buildings: false,
         parcel1: false,
         parcel2: false,
+        parcel3: false,
         openStreetMapSelf: false,
     };
 
@@ -102,18 +104,23 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         tier4: true,
     };
 
-    panelCollapsed = true;
+    panelCollapsed = false;
 
     searchQuery: any;
     suggestions: any[] = [];
     searchTimeout: any;
 
+    // Search panel collapse
+    searchPanelCollapsed = false;
+
     // Advanced search
     advancedSearchExpanded = false;
     parcel1SearchQuery = '';
     parcel2SearchQuery = '';
+    parcel3SearchQuery = '';
     parcel1Results: any[] = [];
     parcel2Results: any[] = [];
+    parcel3Results: any[] = [];
 
     selectedFeature: any = null;
     modalVisible = false;
@@ -134,8 +141,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         country: 2000000, // ~2000 km - Province level (minLevel: 0, maxLevel: 6)
         region: 500000, // ~500 km - District level (minLevel: 6, maxLevel: 9)
         city: 100000, // ~100 km - Sub-district level (minLevel: 9, maxLevel: 12)
-        parcel1: Number.POSITIVE_INFINITY, // Kamphaeng Phet: Always show when enabled (no zoom limit)
+        parcel1: Number.POSITIVE_INFINITY, // Kamphaeng Phet 4k: Always show when enabled (no zoom limit)
         parcel2: Number.POSITIVE_INFINITY, // Thailand: Always show when enabled (no zoom limit)
+        parcel3: Number.POSITIVE_INFINITY, // Kamphaeng Phet 25k: Always show when enabled (no zoom limit)
         roads: 20000, // ~20 km - Roads/Railways/Waterways level (minLevel: 12, maxLevel: 15)
         neighborhood: 5000, // ~5 km - POI level (minLevel: 15, maxLevel: 18)
         street: 1000, // ~1 km - Building level (minLevel: 18, maxLevel: 21)
@@ -164,6 +172,10 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
 
     togglePanel() {
         this.panelCollapsed = !this.panelCollapsed;
+    }
+
+    toggleSearchPanel() {
+        this.searchPanelCollapsed = !this.searchPanelCollapsed;
     }
 
     ngAfterViewInit(): void {
@@ -253,47 +265,35 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             this.layers.subDistrictBoundaries.show = showSubDistrict && this.layerControls.subDistrictBoundaries;
         }
 
-        // Other layers respect tier controls AND user checkboxes
-        if (this.tierControls.tier3) {
-            // Parcel Layer 1 - Kamphaeng Phet: Independent zoom control
-            if (this.layers.parcel1) {
-                this.layers.parcel1.show = this.tierControls.tier3 && cameraHeight < this.zoomLevels.parcel1 && this.layerControls.parcel1;
-            }
-
-            // Parcel Layer 2 - Thailand: Independent zoom control
-            if (this.layers.parcel2) {
-                this.layers.parcel2.show = this.tierControls.tier3 && cameraHeight < this.zoomLevels.parcel2 && this.layerControls.parcel2;
-            }
-        } else {
-            // Hide parcel layers when Tier 3 is disabled
-            if (this.layers.parcel1) {
-                this.layers.parcel1.show = false;
-            }
-            if (this.layers.parcel2) {
-                this.layers.parcel2.show = false;
-            }
+        // Parcel layers - only check layerControls, not tierControls
+        if (this.layers.parcel1) {
+            this.layers.parcel1.show = cameraHeight < this.zoomLevels.parcel1 && this.layerControls.parcel1;
+        }
+        if (this.layers.parcel2) {
+            this.layers.parcel2.show = cameraHeight < this.zoomLevels.parcel2 && this.layerControls.parcel2;
+        }
+        if (this.layers.parcel3) {
+            this.layers.parcel3.show = cameraHeight < this.zoomLevels.parcel3 && this.layerControls.parcel3;
         }
 
-        if (this.tierControls.tier3) {
-            // Roads, Railways and Waterways: Show when < 20 km (minLevel: 12, maxLevel: 15)
-            if (this.layers.roads) {
-                this.layers.roads.show = cameraHeight < this.zoomLevels.roads && this.layerControls.roads;
-            }
-            if (this.layers.railways) {
-                this.layers.railways.show = cameraHeight < this.zoomLevels.roads && this.layerControls.railways;
-            }
-            if (this.layers.waterways) {
-                this.layers.waterways.show = cameraHeight < this.zoomLevels.roads && this.layerControls.waterways;
-            }
-
-            // POI: Show when < 5 km (minLevel: 15, maxLevel: 18)
-            if (this.layers.pois) {
-                this.layers.pois.show = cameraHeight < this.zoomLevels.neighborhood && this.layerControls.pois;
-            }
+        // Roads, Railways and Waterways: Show when < 20 km AND checkbox enabled
+        if (this.layers.roads) {
+            this.layers.roads.show = cameraHeight < this.zoomLevels.roads && this.layerControls.roads;
+        }
+        if (this.layers.railways) {
+            this.layers.railways.show = cameraHeight < this.zoomLevels.roads && this.layerControls.railways;
+        }
+        if (this.layers.waterways) {
+            this.layers.waterways.show = cameraHeight < this.zoomLevels.roads && this.layerControls.waterways;
         }
 
-        // Buildings: Show when < 1 km (minLevel: 18, maxLevel: 21)
-        if (this.tierControls.tier4 && this.layers.buildings) {
+        // POI: Show when < 5 km AND checkbox enabled
+        if (this.layers.pois) {
+            this.layers.pois.show = cameraHeight < this.zoomLevels.neighborhood && this.layerControls.pois;
+        }
+
+        // Buildings: Show when < 1 km AND checkbox enabled
+        if (this.layers.buildings) {
             this.layers.buildings.show = cameraHeight < this.zoomLevels.street && this.layerControls.buildings;
         }
 
@@ -350,10 +350,11 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
 
         this.layers.buildings = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_buildings_a`, 'Buildings', 8);
 
-        // Parcel layers (เลขระวาง) - Kamphaeng Phet on top to show detail in overlap area
-        this.layers.parcel2 = this.addWMSLayer(wmsUrl, `${this.workspace}:transport-thailand`, 'ประเทศไทย (เลขระวาง 2)', 9);
+        this.layers.parcel2 = this.addWMSLayer(wmsUrl, `${this.workspace}:transport-thailand`, 'เลขระวาง ประเทศไทย (สปภ.)', 11);
 
-        this.layers.parcel1 = this.addWMSLayer(wmsUrl, `${this.workspace}:transport-kamphaeng_phet_4k`, 'กำแพงเพชร (เลขระวาง 1)', 11);
+        this.layers.parcel1 = this.addWMSLayer(wmsUrl, `${this.workspace}:transport-kamphaeng_phet_4k`, 'เลขระวาง จังหวัดกำแพงเพชร (4k)', 9);
+
+        this.layers.parcel3 = this.addWMSLayer(wmsUrl, `${this.workspace}:transport-kamphaeng_phet_25k`, 'เลขระวาง จังหวัดกำแพงเพชร (25k)', 10);
     }
 
     private addWMSLayer(url: string, layers: string, name: string, zIndex: number = 0): Cesium.ImageryLayer | null {
@@ -432,6 +433,10 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
+    toggleParcel3() {
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
+    }
+
     toggleOpenStreetMapSelf() {
         if (this.layers.openStreetMapSelf) {
             this.layers.openStreetMapSelf.show = this.layerControls.openStreetMapSelf;
@@ -502,6 +507,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.layerControls.pois = this.tierControls.tier3;
         this.layerControls.parcel1 = this.tierControls.tier3;
         this.layerControls.parcel2 = this.tierControls.tier3;
+        this.layerControls.parcel3 = this.tierControls.tier3;
 
         this.toggleProvinceBoundaries();
         this.toggleDistrictBoundaries();
@@ -512,6 +518,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.togglePOIs();
         this.toggleParcel1();
         this.toggleParcel2();
+        this.toggleParcel3();
     }
 
     // Toggle Tier 3 collapse/expand
@@ -665,8 +672,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             district: 'อำเภอ',
             subdistrict: 'ตำบล',
             poi: 'สถานที่',
-            parcel1: 'เลขระวาง 1',
-            parcel2: 'เลขระวาง 2',
+            parcel1: 'เลขระวาง จังหวัดกำแพงเพชร (4k)',
+            parcel2: 'เลขระวาง ประเทศไทย (สปภ.)',
+            parcel3: 'เลขระวาง จังหวัดกำแพงเพชร (25k)',
         };
         return labels[type] || type;
     }
@@ -679,6 +687,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             poi: 'cil-location-pin',
             parcel1: 'cil-pin',
             parcel2: 'cil-pin',
+            parcel3: 'cil-pin',
         };
         return icons[type] || 'cil-cursor';
     }
@@ -792,7 +801,30 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         }
     }
 
-    selectParcelResult(result: any) {
+    async searchParcel3() {
+        if (!this.parcel3SearchQuery || this.parcel3SearchQuery.trim().length === 0) {
+            this.parcel3Results = [];
+            return;
+        }
+
+        try {
+            this.parcel3Results = await this.searchLayer(
+                `${this.workspace}:transport-kamphaeng_phet_25k`,
+                this.parcel3SearchQuery,
+                'parcel3',
+                'MAPSHEET',
+                'MAPSHEET'
+            );
+        } catch (error) {
+            console.error('Parcel 3 search error:', error);
+            this.parcel3Results = [];
+        }
+    }
+
+    selectParcelResult(event: any) {
+        const result = event.value || event;
+        if (!result) return;
+
         console.log('🎯 Selected parcel:', result);
 
         // Remove previous pin if exists
@@ -825,9 +857,19 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             },
         });
 
+        // Determine fly height based on parcel type
+        let flyHeight = 100000; // Default 100km
+        if (result.type === 'parcel2') {
+            flyHeight = 200000; // ประเทศไทย (สปภ.) - 200km
+        } else if (result.type === 'parcel1') {
+            flyHeight = 100000; // กำแพงเพชร (4k) - 100km
+        } else if (result.type === 'parcel3') {
+            flyHeight = 150000; // กำแพงเพชร (25k) - 150km
+        }
+
         // Fly to location
         this.viewer.camera.flyTo({
-            destination: Cesium.Cartesian3.fromDegrees(result.longitude, result.latitude, 5000),
+            destination: Cesium.Cartesian3.fromDegrees(result.longitude, result.latitude, flyHeight),
             duration: 2,
         });
     }
