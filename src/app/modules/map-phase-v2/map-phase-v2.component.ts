@@ -52,9 +52,19 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         };
     }
 
-    private layers = {
+    // IMAGE Layers (WMS/Tiles) - Tier 2
+    private imageryLayers = {
         openStreetMap: null as Cesium.ImageryLayer | null,
         googleSatellite: null as Cesium.ImageryLayer | null,
+        openStreetMapSelf: null as Cesium.ImageryLayer | null,
+
+        // These are WMS layers (images)
+        buildings: null as Cesium.ImageryLayer | null,
+        transportKamphaengPhet4k: null as Cesium.ImageryLayer | null,
+        transportThailand: null as Cesium.ImageryLayer | null,
+        transportKamphaengPhet25k: null as Cesium.ImageryLayer | null,
+
+        // Optional WMS versions of boundaries (if used in Tier 2)
         provinceBoundaries: null as Cesium.ImageryLayer | null,
         districtBoundaries: null as Cesium.ImageryLayer | null,
         subDistrictBoundaries: null as Cesium.ImageryLayer | null,
@@ -62,17 +72,43 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         railways: null as Cesium.ImageryLayer | null,
         waterways: null as Cesium.ImageryLayer | null,
         pois: null as Cesium.ImageryLayer | null,
-        buildings: null as Cesium.ImageryLayer | null,
-        transportKamphaengPhet4k: null as Cesium.ImageryLayer | null,
-        transportThailand: null as Cesium.ImageryLayer | null,
-        transportKamphaengPhet25k: null as Cesium.ImageryLayer | null,
-
-        openStreetMapSelf: null as Cesium.ImageryLayer | null,
     };
 
-    layerControls = {
+    // VECTOR Layers (WFS/GeoJSON) - Tier 3
+    private vectorLayers = {
+        province: null as Cesium.GeoJsonDataSource | null,
+        district: null as Cesium.GeoJsonDataSource | null,
+        subDistrict: null as Cesium.GeoJsonDataSource | null,
+        pois: null as Cesium.GeoJsonDataSource | null,
+        roads: null as Cesium.GeoJsonDataSource | null,
+        railways: null as Cesium.GeoJsonDataSource | null,
+        waterways: null as Cesium.GeoJsonDataSource | null,
+    };
+
+    // Track which VECTOR layers have been loaded
+    private vectorLayersLoaded = {
+        province: false,
+        district: false,
+        subDistrict: false,
+        pois: false,
+        roads: false,
+        railways: false,
+        waterways: false,
+    };
+
+    // Controls for IMAGERY Layers (Tier 2) - Binds to Checkboxes
+    imageryControls = {
         openStreetMap: false,
         googleSatellite: false,
+        openStreetMapSelf: false,
+
+        buildings: false, // Tier 4 (WMS)
+
+        transportKamphaengPhet4k: false,
+        transportThailand: false,
+        transportKamphaengPhet25k: false,
+
+        // WMS Boundaries (if we want to show them as images)
         provinceBoundaries: false,
         districtBoundaries: false,
         subDistrictBoundaries: false,
@@ -80,11 +116,17 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         railways: false,
         waterways: false,
         pois: false,
-        buildings: false,
-        transportKamphaengPhet4k: false,
-        transportThailand: false,
-        transportKamphaengPhet25k: false,
-        openStreetMapSelf: false,
+    };
+
+    // Controls for VECTOR Layers (Tier 3) - Binds to Checkboxes
+    vectorControls = {
+        province: false,
+        district: false,
+        subDistrict: false,
+        pois: false,
+        roads: false,
+        railways: false,
+        waterways: false,
     };
 
     // Tier controls for hierarchical layer management
@@ -101,7 +143,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         tier0: true,
         tier1: true,
         tier2: true,
-        tier3: true,
+        tier3: false, // Show tier 3 layers by default
         tier4: true,
     };
 
@@ -240,65 +282,143 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     }
 
     updateLayerVisibilityByZoom(cameraHeight: number) {
-        // Zoom levels based on camera height:
-        // Province: > 2000km (minLevel: 0, maxLevel: 6)
-        // District: 500-2000km (minLevel: 6, maxLevel: 9)
-        // Sub-district: 100-500km (minLevel: 9, maxLevel: 12)
-        // Roads/Railways/Waterways: < 20km (minLevel: 12, maxLevel: 15)
-        // POIs: < 5km (minLevel: 15, maxLevel: 18)
-        // Buildings: < 1km (minLevel: 18, maxLevel: 21)
-
+        // Zoom levels based on camera height
         const showProvince = cameraHeight > this.zoomLevels.country;
         const showDistrict = cameraHeight <= this.zoomLevels.country && cameraHeight > this.zoomLevels.region;
         const showSubDistrict = cameraHeight <= this.zoomLevels.region && cameraHeight > this.zoomLevels.city;
 
-        // Province: Show at country level (>2000km) AND when checkbox enabled
-        if (this.layers.provinceBoundaries) {
-            this.layers.provinceBoundaries.show = showProvince && this.layerControls.provinceBoundaries;
+        // --- 1. IMAGERY LAYERS (Tier 2/4) ---
+        // Controlled by imageryControls
+
+        // WMS Boundaries (if loaded)
+        if (this.imageryLayers.provinceBoundaries) {
+            this.imageryLayers.provinceBoundaries.show = showProvince && this.imageryControls.provinceBoundaries;
+        }
+        if (this.imageryLayers.districtBoundaries) {
+            this.imageryLayers.districtBoundaries.show = showDistrict && this.imageryControls.districtBoundaries;
+        }
+        if (this.imageryLayers.subDistrictBoundaries) {
+            this.imageryLayers.subDistrictBoundaries.show = showSubDistrict && this.imageryControls.subDistrictBoundaries;
         }
 
-        // District: Show at region level (500-2000km) AND when checkbox enabled
-        if (this.layers.districtBoundaries) {
-            this.layers.districtBoundaries.show = showDistrict && this.layerControls.districtBoundaries;
+        // Transport Layers (WMS)
+        if (this.imageryLayers.transportKamphaengPhet4k) {
+            this.imageryLayers.transportKamphaengPhet4k.show =
+                cameraHeight < this.zoomLevels.transportKamphaengPhet4k && this.imageryControls.transportKamphaengPhet4k;
+        }
+        if (this.imageryLayers.transportThailand) {
+            this.imageryLayers.transportThailand.show = cameraHeight < this.zoomLevels.transportThailand && this.imageryControls.transportThailand;
+        }
+        if (this.imageryLayers.transportKamphaengPhet25k) {
+            this.imageryLayers.transportKamphaengPhet25k.show =
+                cameraHeight < this.zoomLevels.transportKamphaengPhet25k && this.imageryControls.transportKamphaengPhet25k;
         }
 
-        // Sub-district: Show at city level (100-500km) AND when checkbox enabled
-        if (this.layers.subDistrictBoundaries) {
-            this.layers.subDistrictBoundaries.show = showSubDistrict && this.layerControls.subDistrictBoundaries;
+        // Other WMS Layers (Roads/Rails/Water/POIs as Images - if loaded)
+        if (this.imageryLayers.roads) {
+            this.imageryLayers.roads.show = cameraHeight < this.zoomLevels.roads && this.imageryControls.roads;
+        }
+        if (this.imageryLayers.railways) {
+            this.imageryLayers.railways.show = cameraHeight < this.zoomLevels.roads && this.imageryControls.railways;
+        }
+        if (this.imageryLayers.waterways) {
+            this.imageryLayers.waterways.show = cameraHeight < this.zoomLevels.roads && this.imageryControls.waterways;
+        }
+        if (this.imageryLayers.pois) {
+            this.imageryLayers.pois.show = cameraHeight < this.zoomLevels.neighborhood && this.imageryControls.pois;
         }
 
-        // Parcel layers - only check layerControls, not tierControls
-        if (this.layers.transportKamphaengPhet4k) {
-            this.layers.transportKamphaengPhet4k.show =
-                cameraHeight < this.zoomLevels.transportKamphaengPhet4k && this.layerControls.transportKamphaengPhet4k;
-        }
-        if (this.layers.transportThailand) {
-            this.layers.transportThailand.show = cameraHeight < this.zoomLevels.transportThailand && this.layerControls.transportThailand;
-        }
-        if (this.layers.transportKamphaengPhet25k) {
-            this.layers.transportKamphaengPhet25k.show =
-                cameraHeight < this.zoomLevels.transportKamphaengPhet25k && this.layerControls.transportKamphaengPhet25k;
+        // Buildings (Tier 4)
+        if (this.imageryLayers.buildings) {
+            this.imageryLayers.buildings.show = cameraHeight < this.zoomLevels.street && this.imageryControls.buildings;
         }
 
-        // Roads, Railways and Waterways: Show when < 20 km AND checkbox enabled
-        if (this.layers.roads) {
-            this.layers.roads.show = cameraHeight < this.zoomLevels.roads && this.layerControls.roads;
-        }
-        if (this.layers.railways) {
-            this.layers.railways.show = cameraHeight < this.zoomLevels.roads && this.layerControls.railways;
-        }
-        if (this.layers.waterways) {
-            this.layers.waterways.show = cameraHeight < this.zoomLevels.roads && this.layerControls.waterways;
-        }
+        // --- 2. VECTOR LAYERS (Tier 3) ---
+        // Controlled by vectorControls + Lazy Loading
 
-        // POI: Show when < 5 km AND checkbox enabled
-        if (this.layers.pois) {
-            this.layers.pois.show = cameraHeight < this.zoomLevels.neighborhood && this.layerControls.pois;
-        }
+        // Note: Logic simplified: if Tier 3 is ON, and specific layer is ON, and Zoom is correct -> Load & Show.
+        if (this.tierControls.tier3) {
+            // Province (Vector)
+            if (this.vectorControls.province && cameraHeight > this.zoomLevels.country) {
+                if (!this.vectorLayersLoaded.province) {
+                    this.loadWFSVector(`${this.workspace}:th_province`, 'province', '#E1BEE7', 1.5, 1000, 'rgba(225, 190, 231, 0.08)');
+                }
+            }
+            if (this.vectorLayers.province) {
+                this.vectorLayers.province.show = cameraHeight > this.zoomLevels.country && this.vectorControls.province;
+            }
 
-        // Buildings: Show when < 1 km AND checkbox enabled
-        if (this.layers.buildings) {
-            this.layers.buildings.show = cameraHeight < this.zoomLevels.street && this.layerControls.buildings;
+            // District (Vector)
+            if (this.vectorControls.district && cameraHeight <= this.zoomLevels.country && cameraHeight > this.zoomLevels.region) {
+                if (!this.vectorLayersLoaded.district) {
+                    this.loadWFSVector(`${this.workspace}:thailand-amphoe`, 'district', '#FFE0B2', 1.2, 2000, 'rgba(255, 224, 178, 0.06)');
+                }
+            }
+            if (this.vectorLayers.district) {
+                this.vectorLayers.district.show =
+                    cameraHeight <= this.zoomLevels.country && cameraHeight > this.zoomLevels.region && this.vectorControls.district;
+            }
+
+            // Sub-district (Vector)
+            if (this.vectorControls.subDistrict && cameraHeight <= this.zoomLevels.region && cameraHeight > this.zoomLevels.city) {
+                if (!this.vectorLayersLoaded.subDistrict) {
+                    this.loadWFSVector(`${this.workspace}:thailand-tambon`, 'subDistrict', '#E0E0E0', 0.8, 3000, 'rgba(224, 224, 224, 0.04)');
+                }
+            }
+            if (this.vectorLayers.subDistrict) {
+                this.vectorLayers.subDistrict.show =
+                    cameraHeight <= this.zoomLevels.region && cameraHeight > this.zoomLevels.city && this.vectorControls.subDistrict;
+            }
+
+            // Waterways (Vector)
+            if (this.vectorControls.waterways && cameraHeight < this.zoomLevels.roads) {
+                if (!this.vectorLayersLoaded.waterways) {
+                    this.loadWFSVector(`${this.workspace}:gis_osm_waterways`, 'waterways', '#A8DADC', 1.5, 5000, 'rgba(168, 218, 220, 0.15)');
+                }
+            }
+            if (this.vectorLayers.waterways) {
+                this.vectorLayers.waterways.show = cameraHeight < this.zoomLevels.roads && this.vectorControls.waterways;
+            }
+
+            // Railways (Vector)
+            if (this.vectorControls.railways && cameraHeight < this.zoomLevels.roads) {
+                if (!this.vectorLayersLoaded.railways) {
+                    this.loadWFSVector(`${this.workspace}:gis_osm_railways`, 'railways', '#757575', 2.5, 3000, 'rgba(117, 117, 117, 0.6)');
+                }
+            }
+            if (this.vectorLayers.railways) {
+                this.vectorLayers.railways.show = cameraHeight < this.zoomLevels.roads && this.vectorControls.railways;
+            }
+
+            // Roads (Vector)
+            if (this.vectorControls.roads && cameraHeight < this.zoomLevels.roads) {
+                if (!this.vectorLayersLoaded.roads) {
+                    this.loadWFSVector(`${this.workspace}:gis_osm_roads`, 'roads', '#BDBDBD', 1.8, 5000, 'rgba(250, 250, 250, 0.7)');
+                }
+            }
+            if (this.vectorLayers.roads) {
+                this.vectorLayers.roads.show = cameraHeight < this.zoomLevels.roads && this.vectorControls.roads;
+            }
+
+            // POIs (Vector)
+            if (this.vectorControls.pois && cameraHeight < this.zoomLevels.neighborhood) {
+                if (!this.vectorLayersLoaded.pois) {
+                    this.loadWFSVector(`${this.workspace}:gis_osm_pois`, 'pois', '#EA4335', 1.5, 2000, 'rgba(234, 67, 53, 0.12)');
+                }
+            }
+            if (this.vectorLayers.pois) {
+                this.vectorLayers.pois.show = cameraHeight < this.zoomLevels.neighborhood && this.vectorControls.pois;
+            }
+        } else {
+            // Hide all Tier 3 vector layers when tier is disabled
+            // We only need to hide what is loaded
+            if (this.vectorLayers.roads) this.vectorLayers.roads.show = false;
+            if (this.vectorLayers.railways) this.vectorLayers.railways.show = false;
+            if (this.vectorLayers.waterways) this.vectorLayers.waterways.show = false;
+            if (this.vectorLayers.province) this.vectorLayers.province.show = false;
+            if (this.vectorLayers.district) this.vectorLayers.district.show = false;
+            if (this.vectorLayers.subDistrict) this.vectorLayers.subDistrict.show = false;
+            if (this.vectorLayers.pois) this.vectorLayers.pois.show = false;
         }
 
         console.log(`📏 Zoom updated: ${(cameraHeight / 1000).toFixed(1)} km`);
@@ -311,9 +431,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             const provider = new Cesium.OpenStreetMapImageryProvider({
                 url: 'https://a.tile.openstreetmap.org/',
             });
-            this.layers.openStreetMap = this.viewer.imageryLayers.addImageryProvider(provider);
-            this.layers.openStreetMap.show = this.layerControls.openStreetMap;
-            this.viewer.imageryLayers.raiseToTop(this.layers.openStreetMap);
+            this.imageryLayers.openStreetMap = this.viewer.imageryLayers.addImageryProvider(provider);
+            this.imageryLayers.openStreetMap.show = this.imageryControls.openStreetMap;
+            this.viewer.imageryLayers.raiseToTop(this.imageryLayers.openStreetMap);
             console.log('✓ Tier 2: OpenStreetMap loaded (optional)');
         } catch (error) {
             console.error('✗ Error loading OSM:', error);
@@ -324,51 +444,57 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
                 url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
                 credit: 'Google Maps Satellite',
             });
-            this.layers.googleSatellite = this.viewer.imageryLayers.addImageryProvider(provider);
-            this.layers.googleSatellite.show = this.layerControls.googleSatellite;
-            this.viewer.imageryLayers.raiseToTop(this.layers.googleSatellite);
+            this.imageryLayers.googleSatellite = this.viewer.imageryLayers.addImageryProvider(provider);
+            this.imageryLayers.googleSatellite.show = this.imageryControls.googleSatellite;
+            this.viewer.imageryLayers.raiseToTop(this.imageryLayers.googleSatellite);
             console.log('✓ Tier 2: Google Maps Satellite loaded');
         } catch (error) {
             console.error('✗ Error loading Google Maps:', error);
         }
+
+        const wmsUrl = `${this.geoserverUrl}/wms`;
+
+        // Restore WMS versions of boundaries and infrastructure for Tier 2 (Imagery)
+        this.imageryLayers.provinceBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:th_province`, 'Province Boundaries', 1);
+        this.imageryLayers.districtBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand-amphoe`, 'District Boundaries', 2);
+        this.imageryLayers.subDistrictBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand-tambon`, 'SubDistrict Boundaries', 3);
+
+        this.imageryLayers.waterways = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_waterways`, 'Waterways', 4);
+        this.imageryLayers.railways = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_railways`, 'Railways', 5);
+        this.imageryLayers.roads = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_roads`, 'Roads', 6);
+        this.imageryLayers.pois = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_pois`, 'POIs', 7);
     }
 
     setupTier3_VectorFeatures() {
         const wmsUrl = `${this.geoserverUrl}/wms`;
 
-        this.layers.openStreetMapSelf = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand`, 'Open Street Map (Self)', 0);
+        // Only load WMS layers that are NOT vector features (these will be loaded via WFS in Tier 3)
+        // BUT we store them in imageryLayers now as they are Images/WMS.
+        this.imageryLayers.openStreetMapSelf = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand`, 'Open Street Map (Self)', 0);
 
-        this.layers.waterways = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_waterways`, 'Waterways', 1);
+        // Buildings (Tier 4) - loaded as WMS
+        this.imageryLayers.buildings = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_buildings_a`, 'Buildings', 8);
 
-        this.layers.railways = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_railways`, 'Railways', 2);
+        // Transport layers (Tier 2) - loaded as WMS for parcel selection
+        this.imageryLayers.transportThailand = this.addWMSLayer(wmsUrl, `${this.workspace}:transport-thailand`, 'เลขระวาง ประเทศไทย (สปภ.)', 11);
 
-        this.layers.roads = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_roads`, 'Roads', 3);
-
-        this.layers.provinceBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:th_province`, 'Province Boundaries', 4);
-
-        this.layers.districtBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand-amphoe`, 'District Boundaries', 5);
-
-        this.layers.subDistrictBoundaries = this.addWMSLayer(wmsUrl, `${this.workspace}:thailand-tambon`, 'SubDistrict Boundaries', 6);
-
-        this.layers.pois = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_pois`, 'POIs (Points of Interest)', 7);
-
-        this.layers.buildings = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_buildings_a`, 'Buildings', 8);
-
-        this.layers.transportThailand = this.addWMSLayer(wmsUrl, `${this.workspace}:transport-thailand`, 'เลขระวาง ประเทศไทย (สปภ.)', 11);
-
-        this.layers.transportKamphaengPhet4k = this.addWMSLayer(
+        this.imageryLayers.transportKamphaengPhet4k = this.addWMSLayer(
             wmsUrl,
             `${this.workspace}:transport-kamphaeng_phet_4k`,
             'เลขระวาง จังหวัดกำแพงเพชร (4k)',
             9
         );
 
-        this.layers.transportKamphaengPhet25k = this.addWMSLayer(
+        this.imageryLayers.transportKamphaengPhet25k = this.addWMSLayer(
             wmsUrl,
             `${this.workspace}:transport-kamphaeng_phet_25k`,
             'เลขระวาง จังหวัดกำแพงเพชร (25k)',
             10
         );
+
+        // Note: Province, District, SubDistrict, Roads, Railways, Waterways, POIs
+        // are now loaded via WFS in Tier 3 for interactive vector features using vectorLayers.
+        console.log('✓ Tier 3: Vector features will be loaded via WFS when enabled');
     }
 
     private addWMSLayer(url: string, layers: string, name: string, zIndex: number = 0): Cesium.ImageryLayer | null {
@@ -398,15 +524,70 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         }
     }
 
+    // Load WFS vector data as GeoJSON (lazy loading)
+    private async loadWFSVector(
+        typeName: string,
+        key: keyof typeof this.vectorLayers, // Updated key type
+        strokeColor: string = '#1a73e8',
+        strokeWidth: number = 2,
+        maxFeatures: number = 2000,
+        fillColor: string = 'rgba(255, 255, 255, 0.01)'
+    ) {
+        // Skip if already loaded or currently loading
+        if (this.vectorLayersLoaded[key]) {
+            console.log(`⏭️ Vector layer already loaded: ${key}`);
+            return;
+        }
+
+        // Set flag immediately
+        this.vectorLayersLoaded[key] = true;
+
+        const url = `${this.geoserverUrl}/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=${typeName}&outputFormat=application/json&srsName=EPSG:4326&maxFeatures=${maxFeatures}`;
+        const startTime = performance.now();
+
+        try {
+            const dataSource = await Cesium.GeoJsonDataSource.load(url, {
+                stroke: Cesium.Color.fromCssColorString(strokeColor),
+                fill: Cesium.Color.fromCssColorString(fillColor),
+                strokeWidth: strokeWidth,
+            });
+
+            this.viewer.dataSources.add(dataSource);
+            this.vectorLayers[key] = dataSource; // Update storage
+            dataSource.show = false;
+
+            const endTime = performance.now();
+            const loadTime = ((endTime - startTime) / 1000).toFixed(2);
+            const featureCount = dataSource.entities.values.length;
+
+            console.log(`✅ [${key}] Vector layer loaded successfully!`);
+            console.log(`   📊 Features: ${featureCount}`);
+            console.log(`   ⏱️ Load time: ${loadTime}s`);
+
+            // Update visibility immediately
+            this.updateLayerVisibilityByZoom(this.currentCameraHeight);
+        } catch (e) {
+            const endTime = performance.now();
+            const loadTime = ((endTime - startTime) / 1000).toFixed(2);
+
+            // Reset flag on error
+            this.vectorLayersLoaded[key] = false;
+
+            console.error(`❌ [${key}] Failed to load WFS: ${typeName}`);
+            console.error(`   ⏱️ Failed after: ${loadTime}s`);
+            console.error(`   🔴 Error:`, e);
+        }
+    }
+
     toggleOpenStreetMap() {
-        if (this.layers.openStreetMap) {
-            this.layers.openStreetMap.show = this.layerControls.openStreetMap;
+        if (this.imageryLayers.openStreetMap) {
+            this.imageryLayers.openStreetMap.show = this.imageryControls.openStreetMap;
         }
     }
 
     toggleGoogleSatellite() {
-        if (this.layers.googleSatellite) {
-            this.layers.googleSatellite.show = this.layerControls.googleSatellite;
+        if (this.imageryLayers.googleSatellite) {
+            this.imageryLayers.googleSatellite.show = this.imageryControls.googleSatellite;
         }
     }
 
@@ -452,8 +633,8 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     }
 
     toggleOpenStreetMapSelf() {
-        if (this.layers.openStreetMapSelf) {
-            this.layers.openStreetMapSelf.show = this.layerControls.openStreetMapSelf;
+        if (this.imageryLayers.openStreetMapSelf) {
+            this.imageryLayers.openStreetMapSelf.show = this.imageryControls.openStreetMapSelf;
         }
     }
 
@@ -494,35 +675,36 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.tierCollapsed.tier1 = !this.tierCollapsed.tier1;
     }
 
-    // Tier 2: Toggle all Imagery layers (now includes all WMS layers)
+    // Tier 2: Toggle all Imagery layers (WMS/Tile layers only)
     toggleTier2() {
-        this.layerControls.openStreetMap = this.tierControls.tier2;
-        this.layerControls.googleSatellite = this.tierControls.tier2;
-        this.layerControls.openStreetMapSelf = this.tierControls.tier2;
-        this.layerControls.provinceBoundaries = this.tierControls.tier2;
-        this.layerControls.districtBoundaries = this.tierControls.tier2;
-        this.layerControls.subDistrictBoundaries = this.tierControls.tier2;
-        this.layerControls.roads = this.tierControls.tier2;
-        this.layerControls.railways = this.tierControls.tier2;
-        this.layerControls.waterways = this.tierControls.tier2;
-        this.layerControls.pois = this.tierControls.tier2;
-        this.layerControls.transportKamphaengPhet4k = this.tierControls.tier2;
-        this.layerControls.transportThailand = this.tierControls.tier2;
-        this.layerControls.transportKamphaengPhet25k = this.tierControls.tier2;
+        // Toggle imagery layer controls
+        const isEnabled = this.tierControls.tier2;
+        this.imageryControls.openStreetMap = isEnabled;
+        this.imageryControls.googleSatellite = isEnabled;
+        this.imageryControls.openStreetMapSelf = isEnabled;
+        this.imageryControls.transportKamphaengPhet4k = isEnabled;
+        this.imageryControls.transportThailand = isEnabled;
+        this.imageryControls.transportKamphaengPhet25k = isEnabled;
+
+        // Also toggle the WMS versions of boundaries/infrastructure
+        this.imageryControls.provinceBoundaries = isEnabled;
+        this.imageryControls.districtBoundaries = isEnabled;
+        this.imageryControls.subDistrictBoundaries = isEnabled;
+        this.imageryControls.waterways = isEnabled;
+        this.imageryControls.railways = isEnabled;
+        this.imageryControls.roads = isEnabled;
+        this.imageryControls.pois = isEnabled;
 
         this.toggleOpenStreetMap();
         this.toggleGoogleSatellite();
         this.toggleOpenStreetMapSelf();
-        this.toggleProvinceBoundaries();
-        this.toggleDistrictBoundaries();
-        this.toggleSubDistrictBoundaries();
-        this.toggleRoads();
-        this.toggleRailways();
-        this.toggleWaterways();
-        this.togglePOIs();
         this.toggleTransportKamphaengPhet4k();
         this.toggleTransportThailand();
         this.toggleTransportKamphaengPhet25k();
+
+        // Trigger updates for the boundary/infra layers
+        // (Note: they share toggle methods with vector layers but updateLayerVisibilityByZoom checks both controls)
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     // Toggle Tier 2 collapse/expand
@@ -530,9 +712,21 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.tierCollapsed.tier2 = !this.tierCollapsed.tier2;
     }
 
-    // Tier 3: Vector/Features (reserved for future use)
+    // Tier 3: Vector/Features (WFS layers with lazy loading)
     toggleTier3() {
         console.log('Tier 3 Vector/Features:', this.tierControls.tier3 ? 'ON' : 'OFF');
+
+        // Toggle all vector layer controls
+        this.vectorControls.province = this.tierControls.tier3;
+        this.vectorControls.district = this.tierControls.tier3;
+        this.vectorControls.subDistrict = this.tierControls.tier3;
+        this.vectorControls.waterways = this.tierControls.tier3;
+        this.vectorControls.railways = this.tierControls.tier3;
+        this.vectorControls.roads = this.tierControls.tier3;
+        this.vectorControls.pois = this.tierControls.tier3;
+
+        // Update visibility for all vector layers
+        this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
     // Toggle Tier 3 collapse/expand
@@ -542,7 +736,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
 
     // Tier 4: Toggle 3D Tiles/Buildings
     toggleTier4() {
-        this.layerControls.buildings = this.tierControls.tier4;
+        this.imageryControls.buildings = this.tierControls.tier4;
         this.toggleBuildings();
         console.log('Tier 4 3D Tiles/Buildings:', this.tierControls.tier4 ? 'ON' : 'OFF');
     }
