@@ -494,35 +494,25 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.tierCollapsed.tier1 = !this.tierCollapsed.tier1;
     }
 
-    // Tier 2: Toggle all Imagery layers
+    // Tier 2: Toggle all Imagery layers (now includes all WMS layers)
     toggleTier2() {
         this.layerControls.openStreetMap = this.tierControls.tier2;
         this.layerControls.googleSatellite = this.tierControls.tier2;
         this.layerControls.openStreetMapSelf = this.tierControls.tier2;
+        this.layerControls.provinceBoundaries = this.tierControls.tier2;
+        this.layerControls.districtBoundaries = this.tierControls.tier2;
+        this.layerControls.subDistrictBoundaries = this.tierControls.tier2;
+        this.layerControls.roads = this.tierControls.tier2;
+        this.layerControls.railways = this.tierControls.tier2;
+        this.layerControls.waterways = this.tierControls.tier2;
+        this.layerControls.pois = this.tierControls.tier2;
+        this.layerControls.transportKamphaengPhet4k = this.tierControls.tier2;
+        this.layerControls.transportThailand = this.tierControls.tier2;
+        this.layerControls.transportKamphaengPhet25k = this.tierControls.tier2;
 
         this.toggleOpenStreetMap();
         this.toggleGoogleSatellite();
         this.toggleOpenStreetMapSelf();
-    }
-
-    // Toggle Tier 2 collapse/expand
-    toggleTier2Collapse() {
-        this.tierCollapsed.tier2 = !this.tierCollapsed.tier2;
-    }
-
-    // Tier 3: Toggle all Vector/Features layers
-    toggleTier3() {
-        this.layerControls.provinceBoundaries = this.tierControls.tier3;
-        this.layerControls.districtBoundaries = this.tierControls.tier3;
-        this.layerControls.subDistrictBoundaries = this.tierControls.tier3;
-        this.layerControls.roads = this.tierControls.tier3;
-        this.layerControls.railways = this.tierControls.tier3;
-        this.layerControls.waterways = this.tierControls.tier3;
-        this.layerControls.pois = this.tierControls.tier3;
-        this.layerControls.transportKamphaengPhet4k = this.tierControls.tier3;
-        this.layerControls.transportThailand = this.tierControls.tier3;
-        this.layerControls.transportKamphaengPhet25k = this.tierControls.tier3;
-
         this.toggleProvinceBoundaries();
         this.toggleDistrictBoundaries();
         this.toggleSubDistrictBoundaries();
@@ -533,6 +523,16 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.toggleTransportKamphaengPhet4k();
         this.toggleTransportThailand();
         this.toggleTransportKamphaengPhet25k();
+    }
+
+    // Toggle Tier 2 collapse/expand
+    toggleTier2Collapse() {
+        this.tierCollapsed.tier2 = !this.tierCollapsed.tier2;
+    }
+
+    // Tier 3: Vector/Features (reserved for future use)
+    toggleTier3() {
+        console.log('Tier 3 Vector/Features:', this.tierControls.tier3 ? 'ON' : 'OFF');
     }
 
     // Toggle Tier 3 collapse/expand

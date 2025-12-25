@@ -114,21 +114,21 @@
     <c-card-body *ngIf="!panelCollapsed" class="p-3" style="max-height: calc(100vh - 140px); overflow-y: auto;">
       <div class="layer-controls">
 
-        <!-- Tier 0: Globe/Ellipsoid -->
+        <!-- Tier 0: Globe (Ellipsoid) -->
         <div class="tier-section mb-3">
           <div class="d-flex align-items-center p-2 bg-light border-start border-3 border-primary rounded mb-2">
             <input type="checkbox" class="form-check-input me-2" [(ngModel)]="tierControls.tier0"
               (change)="toggleTier0()" />
-            <span class="fw-bold text-primary">🌍 Tier 0: Globe (Ellipsoid)</span>
+            <span class="fw-bold text-primary small">🌍 Tier 0: Globe (Ellipsoid)</span>
           </div>
         </div>
 
-        <!-- Tier 1: Terrain -->
+        <!-- Tier 1: Terrain (DEM) -->
         <div class="tier-section mb-3">
           <div class="d-flex align-items-center p-2 bg-light border-start border-3 border-primary rounded mb-2">
             <input type="checkbox" class="form-check-input me-2" [(ngModel)]="tierControls.tier1"
               (change)="toggleTier1()" />
-            <span class="fw-bold text-primary">🗻 Tier 1: </span>
+            <span class="fw-bold text-primary small">🏔️ Tier 1: Terrain (DEM)</span>
           </div>
         </div>
 
@@ -137,27 +137,79 @@
           <div class="d-flex align-items-center p-2 bg-light border-start border-3 border-primary rounded mb-2">
             <input type="checkbox" class="form-check-input me-2" [(ngModel)]="tierControls.tier2"
               (change)="toggleTier2()" />
-            <span class="fw-bold text-primary d-flex align-items-center gap-2" style="cursor: pointer;"
+            <span class="fw-bold text-primary small d-flex align-items-center gap-2" style="cursor: pointer;"
               (click)="toggleTier2Collapse()">
               <svg cIcon [name]="tierCollapsed.tier2 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"></svg>
-              🗺️ Tier 2:
+              🗺️ Tier 2: Imagery
             </span>
           </div>
           <div class="ms-4 ps-2 border-start" *ngIf="!tierCollapsed.tier2">
             <div class="form-check mb-2">
               <input type="checkbox" class="form-check-input" id="layerControlOSM"
                 [(ngModel)]="layerControls.openStreetMap" (change)="toggleOpenStreetMap()" />
-              <label class="form-check-label" for="layerControlOSM">Open Street Map</label>
+              <label class="form-check-label small" for="layerControlOSM">Open Street Map</label>
             </div>
             <div class="form-check mb-2">
               <input type="checkbox" class="form-check-input" id="layerControlSat"
                 [(ngModel)]="layerControls.googleSatellite" (change)="toggleGoogleSatellite()" />
-              <label class="form-check-label" for="layerControlSat">Google Satellite</label>
+              <label class="form-check-label small" for="layerControlSat">Google Satellite</label>
             </div>
             <div class="form-check mb-2">
               <input type="checkbox" class="form-check-input" id="layerControlOSMSelf"
                 [(ngModel)]="layerControls.openStreetMapSelf" (change)="toggleOpenStreetMapSelf()" />
-              <label class="form-check-label" for="layerControlOSMSelf">Open Street Map (Self)</label>
+              <label class="form-check-label small" for="layerControlOSMSelf">Open Street Map (Self)</label>
+            </div>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerProv"
+                [(ngModel)]="layerControls.provinceBoundaries" (change)="toggleProvinceBoundaries()" />
+              <label class="form-check-label small" for="layerProv">ขอบเขตจังหวัด</label>
+            </div>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerDist"
+                [(ngModel)]="layerControls.districtBoundaries" (change)="toggleDistrictBoundaries()" />
+              <label class="form-check-label small" for="layerDist">ขอบเขตอำเภอ</label>
+            </div>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerSubDist"
+                [(ngModel)]="layerControls.subDistrictBoundaries" (change)="toggleSubDistrictBoundaries()" />
+              <label class="form-check-label small" for="layerSubDist">ขอบเขตตำบล</label>
+            </div>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerWater" [(ngModel)]="layerControls.waterways"
+                (change)="toggleWaterways()" />
+              <label class="form-check-label small" for="layerWater">คลอง/ทางน้ำ</label>
+            </div>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerRail" [(ngModel)]="layerControls.railways"
+                (change)="toggleRailways()" />
+              <label class="form-check-label small" for="layerRail">รางรถไฟ</label>
+            </div>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerRoad" [(ngModel)]="layerControls.roads"
+                (change)="toggleRoads()" />
+              <label class="form-check-label small" for="layerRoad">ถนน</label>
+            </div>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerPois" [(ngModel)]="layerControls.pois"
+                (change)="togglePOIs()" />
+              <label class="form-check-label small" for="layerPois">สถานที่ (POI)</label>
+            </div>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerTransportThailand"
+                [(ngModel)]="layerControls.transportThailand" (change)="toggleTransportThailand()" />
+              <label class="form-check-label small" for="layerTransportThailand">เลขระวาง ประเทศไทย (สปภ.)</label>
+            </div>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerTransportKamphaengPhet4k"
+                [(ngModel)]="layerControls.transportKamphaengPhet4k" (change)="toggleTransportKamphaengPhet4k()" />
+              <label class="form-check-label small" for="layerTransportKamphaengPhet4k">เลขระวาง จังหวัดกำแพงเพชร
+                (4k)</label>
+            </div>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="layerTransportKamphaengPhet25k"
+                [(ngModel)]="layerControls.transportKamphaengPhet25k" (change)="toggleTransportKamphaengPhet25k()" />
+              <label class="form-check-label small" for="layerTransportKamphaengPhet25k">เลขระวาง จังหวัดกำแพงเพชร
+                (25k)</label>
             </div>
           </div>
         </div>
@@ -167,64 +219,7 @@
           <div class="d-flex align-items-center p-2 bg-light border-start border-3 border-primary rounded mb-2">
             <input type="checkbox" class="form-check-input me-2" [(ngModel)]="tierControls.tier3"
               (change)="toggleTier3()" />
-            <span class="fw-bold text-primary d-flex align-items-center gap-2" style="cursor: pointer;"
-              (click)="toggleTier3Collapse()">
-              <svg cIcon [name]="tierCollapsed.tier3 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"></svg>
-              📍 Tier 3:
-            </span>
-          </div>
-          <div class="ms-4 ps-2 border-start" *ngIf="!tierCollapsed.tier3">
-            <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerProv"
-                [(ngModel)]="layerControls.provinceBoundaries" (change)="toggleProvinceBoundaries()" />
-              <label class="form-check-label" for="layerProv">ขอบเขตจังหวัด</label>
-            </div>
-            <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerDist"
-                [(ngModel)]="layerControls.districtBoundaries" (change)="toggleDistrictBoundaries()" />
-              <label class="form-check-label" for="layerDist">ขอบเขตอำเภอ</label>
-            </div>
-            <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerSubDist"
-                [(ngModel)]="layerControls.subDistrictBoundaries" (change)="toggleSubDistrictBoundaries()" />
-              <label class="form-check-label" for="layerSubDist">ขอบเขตตำบล</label>
-            </div>
-            <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerWater" [(ngModel)]="layerControls.waterways"
-                (change)="toggleWaterways()" />
-              <label class="form-check-label" for="layerWater">คลอง/ทางน้ำ</label>
-            </div>
-            <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerRail" [(ngModel)]="layerControls.railways"
-                (change)="toggleRailways()" />
-              <label class="form-check-label" for="layerRail">รางรถไฟ</label>
-            </div>
-            <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerRoad" [(ngModel)]="layerControls.roads"
-                (change)="toggleRoads()" />
-              <label class="form-check-label" for="layerRoad">ถนน</label>
-            </div>
-            <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerPois" [(ngModel)]="layerControls.pois"
-                (change)="togglePOIs()" />
-              <label class="form-check-label" for="layerPois">สถานที่ (POI)</label>
-            </div>
-            <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerTransportThailand"
-                [(ngModel)]="layerControls.transportThailand" (change)="toggleTransportThailand()" />
-              <label class="form-check-label" for="layerTransportThailand">เลขระวาง ประเทศไทย (สปภ.)</label>
-            </div>
-            <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerTransportKamphaengPhet4k"
-                [(ngModel)]="layerControls.transportKamphaengPhet4k" (change)="toggleTransportKamphaengPhet4k()" />
-              <label class="form-check-label" for="layerTransportKamphaengPhet4k">เลขระวาง จังหวัดกำแพงเพชร (4k)</label>
-            </div>
-            <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerTransportKamphaengPhet25k"
-                [(ngModel)]="layerControls.transportKamphaengPhet25k" (change)="toggleTransportKamphaengPhet25k()" />
-              <label class="form-check-label" for="layerTransportKamphaengPhet25k">เลขระวาง จังหวัดกำแพงเพชร
-                (25k)</label>
-            </div>
+            <span class="fw-bold text-primary small">📍 Tier 3: Vector/Features</span>
           </div>
         </div>
 
@@ -233,18 +228,7 @@
           <div class="d-flex align-items-center p-2 bg-light border-start border-3 border-primary rounded mb-2">
             <input type="checkbox" class="form-check-input me-2" [(ngModel)]="tierControls.tier4"
               (change)="toggleTier4()" />
-            <span class="fw-bold text-primary d-flex align-items-center gap-2" style="cursor: pointer;"
-              (click)="toggleTier4Collapse()">
-              <svg cIcon [name]="tierCollapsed.tier4 ? 'cilChevronRight' : 'cilChevronBottom'" size="sm"></svg>
-              🏢 Tier 4:
-            </span>
-          </div>
-          <div class="ms-4 ps-2 border-start" *ngIf="!tierCollapsed.tier4">
-            <!-- <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerBuild" [(ngModel)]="layerControls.buildings"
-                (change)="toggleBuildings()" />
-              <label class="form-check-label" for="layerBuild">อาคาร/สิ่งปลูกสร้าง</label>
-            </div> -->
+            <span class="fw-bold text-primary small">🏢 Tier 4: 3D Tiles/Buildings</span>
           </div>
         </div>
 
