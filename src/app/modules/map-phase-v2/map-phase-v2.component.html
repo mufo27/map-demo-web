@@ -45,10 +45,10 @@
 
         <div class="mb-2">
           <label class="form-label small fw-bold text-muted mb-1">เลขระวาง ประเทศไทย (สปภ.)</label>
-          <p-autoComplete [(ngModel)]="parcel2SearchQuery" [suggestions]="parcel2Results"
-            (completeMethod)="searchParcel2()" (onSelect)="selectParcelResult($event)" field="name" placeholder=""
-            [style]="{ width: '100%' }" [inputStyle]="{ width: '100%', height: '32px', fontSize: '13px' }"
-            styleClass="w-100">
+          <p-autoComplete [(ngModel)]="transportThailandSearchQuery" [suggestions]="transportThailandResults"
+            (completeMethod)="searchTransportThailand()" (onSelect)="selectParcelResult($event)" field="name"
+            placeholder="" [style]="{ width: '100%' }"
+            [inputStyle]="{ width: '100%', height: '32px', fontSize: '13px' }" styleClass="w-100">
             <ng-template let-result pTemplate="item">
               <div class="d-flex align-items-center gap-2">
                 <svg cIcon name="cilLocationPin" size="lg" class="text-secondary"></svg>
@@ -63,10 +63,10 @@
 
         <div class="mb-2">
           <label class="form-label small fw-bold text-muted mb-1">เลขระวาง จ.กำแพงเพชร (4k)</label>
-          <p-autoComplete [(ngModel)]="parcel1SearchQuery" [suggestions]="parcel1Results"
-            (completeMethod)="searchParcel1()" (onSelect)="selectParcelResult($event)" field="name" placeholder="."
-            [style]="{ width: '100%' }" [inputStyle]="{ width: '100%', height: '32px', fontSize: '13px' }"
-            styleClass="w-100">
+          <p-autoComplete [(ngModel)]="transportKamphaengPhet4kSearchQuery"
+            [suggestions]="transportKamphaengPhet4kResults" (completeMethod)="searchTransportKamphaengPhet4k()"
+            (onSelect)="selectParcelResult($event)" field="name" placeholder="." [style]="{ width: '100%' }"
+            [inputStyle]="{ width: '100%', height: '32px', fontSize: '13px' }" styleClass="w-100">
             <ng-template let-result pTemplate="item">
               <div class="d-flex align-items-center gap-2">
                 <svg cIcon name="cilLocationPin" size="lg" class="text-secondary"></svg>
@@ -81,10 +81,10 @@
 
         <div class="mb-2">
           <label class="form-label small fw-bold text-muted mb-1">เลขระวาง จ.กำแพงเพชร (25k)</label>
-          <p-autoComplete [(ngModel)]="parcel3SearchQuery" [suggestions]="parcel3Results"
-            (completeMethod)="searchParcel3()" (onSelect)="selectParcelResult($event)" field="name" placeholder=""
-            [style]="{ width: '100%' }" [inputStyle]="{ width: '100%', height: '32px', fontSize: '13px' }"
-            styleClass="w-100">
+          <p-autoComplete [(ngModel)]="transportKamphaengPhet25kSearchQuery"
+            [suggestions]="transportKamphaengPhet25kResults" (completeMethod)="searchTransportKamphaengPhet25k()"
+            (onSelect)="selectParcelResult($event)" field="name" placeholder="" [style]="{ width: '100%' }"
+            [inputStyle]="{ width: '100%', height: '32px', fontSize: '13px' }" styleClass="w-100">
             <ng-template let-result pTemplate="item">
               <div class="d-flex align-items-center gap-2">
                 <svg cIcon name="cilLocationPin" size="lg" class="text-secondary"></svg>
@@ -210,19 +210,20 @@
               <label class="form-check-label" for="layerPois">สถานที่ (POI)</label>
             </div>
             <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerParcel2" [(ngModel)]="layerControls.parcel2"
-                (change)="toggleParcel2()" />
-              <label class="form-check-label" for="layerParcel2">เลขระวาง ประเทศไทย (สปภ.)</label>
+              <input type="checkbox" class="form-check-input" id="layerTransportThailand"
+                [(ngModel)]="layerControls.transportThailand" (change)="toggleTransportThailand()" />
+              <label class="form-check-label" for="layerTransportThailand">เลขระวาง ประเทศไทย (สปภ.)</label>
             </div>
             <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerParcel1" [(ngModel)]="layerControls.parcel1"
-                (change)="toggleParcel1()" />
-              <label class="form-check-label" for="layerParcel1">เลขระวาง จังหวัดกำแพงเพชร (4k)</label>
+              <input type="checkbox" class="form-check-input" id="layerTransportKamphaengPhet4k"
+                [(ngModel)]="layerControls.transportKamphaengPhet4k" (change)="toggleTransportKamphaengPhet4k()" />
+              <label class="form-check-label" for="layerTransportKamphaengPhet4k">เลขระวาง จังหวัดกำแพงเพชร (4k)</label>
             </div>
             <div class="form-check mb-2">
-              <input type="checkbox" class="form-check-input" id="layerParcel3" [(ngModel)]="layerControls.parcel3"
-                (change)="toggleParcel3()" />
-              <label class="form-check-label" for="layerParcel3">เลขระวาง จังหวัดกำแพงเพชร (25k)</label>
+              <input type="checkbox" class="form-check-input" id="layerTransportKamphaengPhet25k"
+                [(ngModel)]="layerControls.transportKamphaengPhet25k" (change)="toggleTransportKamphaengPhet25k()" />
+              <label class="form-check-label" for="layerTransportKamphaengPhet25k">เลขระวาง จังหวัดกำแพงเพชร
+                (25k)</label>
             </div>
           </div>
         </div>
@@ -339,15 +340,15 @@
     </c-modal-body>
     <c-modal-footer>
       <button cButton color="danger" size="sm" (click)="exportFeatureAsPDF()"
-        *ngIf="selectedFeature?.type === 'parcel1' || selectedFeature?.type === 'parcel2' || selectedFeature?.type === 'parcel3'">
+        *ngIf="selectedFeature?.type === 'transport-kamphaeng-phet-4k' || selectedFeature?.type === 'transport-thailand' || selectedFeature?.type === 'transport-kamphaeng-phet-25k'">
         Export PDF
       </button>
       <button cButton color="info" size="sm" (click)="exportMapAsImage()"
-        *ngIf="selectedFeature?.type === 'parcel1' || selectedFeature?.type === 'parcel2' || selectedFeature?.type === 'parcel3'">
+        *ngIf="selectedFeature?.type === 'transport-kamphaeng-phet-4k' || selectedFeature?.type === 'transport-thailand' || selectedFeature?.type === 'transport-kamphaeng-phet-25k'">
         Export Map
       </button>
       <button cButton color="success" (click)="addToCart(selectedFeature); closeModal()"
-        *ngIf="selectedFeature?.type === 'parcel1' || selectedFeature?.type === 'parcel2' || selectedFeature?.type === 'parcel3'">
+        *ngIf="selectedFeature?.type === 'transport-kamphaeng-phet-4k' || selectedFeature?.type === 'transport-thailand' || selectedFeature?.type === 'transport-kamphaeng-phet-25k'">
         🛒 เพิ่มลงตะกร้า
       </button>
       <button cButton color="secondary" (click)="closeModal()">ปิด</button>

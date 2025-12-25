@@ -63,9 +63,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         waterways: null as Cesium.ImageryLayer | null,
         pois: null as Cesium.ImageryLayer | null,
         buildings: null as Cesium.ImageryLayer | null,
-        parcel1: null as Cesium.ImageryLayer | null,
-        parcel2: null as Cesium.ImageryLayer | null,
-        parcel3: null as Cesium.ImageryLayer | null,
+        transportKamphaengPhet4k: null as Cesium.ImageryLayer | null,
+        transportThailand: null as Cesium.ImageryLayer | null,
+        transportKamphaengPhet25k: null as Cesium.ImageryLayer | null,
 
         openStreetMapSelf: null as Cesium.ImageryLayer | null,
     };
@@ -81,9 +81,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         waterways: false,
         pois: false,
         buildings: false,
-        parcel1: false,
-        parcel2: false,
-        parcel3: false,
+        transportKamphaengPhet4k: false,
+        transportThailand: false,
+        transportKamphaengPhet25k: false,
         openStreetMapSelf: false,
     };
 
@@ -116,12 +116,12 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
 
     // Advanced search
     advancedSearchExpanded = false;
-    parcel1SearchQuery = '';
-    parcel2SearchQuery = '';
-    parcel3SearchQuery = '';
-    parcel1Results: any[] = [];
-    parcel2Results: any[] = [];
-    parcel3Results: any[] = [];
+    transportKamphaengPhet4kSearchQuery = '';
+    transportThailandSearchQuery = '';
+    transportKamphaengPhet25kSearchQuery = '';
+    transportKamphaengPhet4kResults: any[] = [];
+    transportThailandResults: any[] = [];
+    transportKamphaengPhet25kResults: any[] = [];
 
     selectedFeature: any = null;
     modalVisible = false;
@@ -143,9 +143,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         country: 2000000, // ~2000 km - Province level (minLevel: 0, maxLevel: 6)
         region: 500000, // ~500 km - District level (minLevel: 6, maxLevel: 9)
         city: 100000, // ~100 km - Sub-district level (minLevel: 9, maxLevel: 12)
-        parcel1: Number.POSITIVE_INFINITY, // Kamphaeng Phet 4k: Always show when enabled (no zoom limit)
-        parcel2: Number.POSITIVE_INFINITY, // Thailand: Always show when enabled (no zoom limit)
-        parcel3: Number.POSITIVE_INFINITY, // Kamphaeng Phet 25k: Always show when enabled (no zoom limit)
+        transportKamphaengPhet4k: Number.POSITIVE_INFINITY, // Kamphaeng Phet 4k: Always show when enabled (no zoom limit)
+        transportThailand: Number.POSITIVE_INFINITY, // Thailand: Always show when enabled (no zoom limit)
+        transportKamphaengPhet25k: Number.POSITIVE_INFINITY, // Kamphaeng Phet 25k: Always show when enabled (no zoom limit)
         roads: 20000, // ~20 km - Roads/Railways/Waterways level (minLevel: 12, maxLevel: 15)
         neighborhood: 5000, // ~5 km - POI level (minLevel: 15, maxLevel: 18)
         street: 1000, // ~1 km - Building level (minLevel: 18, maxLevel: 21)
@@ -268,14 +268,16 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         }
 
         // Parcel layers - only check layerControls, not tierControls
-        if (this.layers.parcel1) {
-            this.layers.parcel1.show = cameraHeight < this.zoomLevels.parcel1 && this.layerControls.parcel1;
+        if (this.layers.transportKamphaengPhet4k) {
+            this.layers.transportKamphaengPhet4k.show =
+                cameraHeight < this.zoomLevels.transportKamphaengPhet4k && this.layerControls.transportKamphaengPhet4k;
         }
-        if (this.layers.parcel2) {
-            this.layers.parcel2.show = cameraHeight < this.zoomLevels.parcel2 && this.layerControls.parcel2;
+        if (this.layers.transportThailand) {
+            this.layers.transportThailand.show = cameraHeight < this.zoomLevels.transportThailand && this.layerControls.transportThailand;
         }
-        if (this.layers.parcel3) {
-            this.layers.parcel3.show = cameraHeight < this.zoomLevels.parcel3 && this.layerControls.parcel3;
+        if (this.layers.transportKamphaengPhet25k) {
+            this.layers.transportKamphaengPhet25k.show =
+                cameraHeight < this.zoomLevels.transportKamphaengPhet25k && this.layerControls.transportKamphaengPhet25k;
         }
 
         // Roads, Railways and Waterways: Show when < 20 km AND checkbox enabled
@@ -352,11 +354,21 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
 
         this.layers.buildings = this.addWMSLayer(wmsUrl, `${this.workspace}:gis_osm_buildings_a`, 'Buildings', 8);
 
-        this.layers.parcel2 = this.addWMSLayer(wmsUrl, `${this.workspace}:transport-thailand`, 'เลขระวาง ประเทศไทย (สปภ.)', 11);
+        this.layers.transportThailand = this.addWMSLayer(wmsUrl, `${this.workspace}:transport-thailand`, 'เลขระวาง ประเทศไทย (สปภ.)', 11);
 
-        this.layers.parcel1 = this.addWMSLayer(wmsUrl, `${this.workspace}:transport-kamphaeng_phet_4k`, 'เลขระวาง จังหวัดกำแพงเพชร (4k)', 9);
+        this.layers.transportKamphaengPhet4k = this.addWMSLayer(
+            wmsUrl,
+            `${this.workspace}:transport-kamphaeng_phet_4k`,
+            'เลขระวาง จังหวัดกำแพงเพชร (4k)',
+            9
+        );
 
-        this.layers.parcel3 = this.addWMSLayer(wmsUrl, `${this.workspace}:transport-kamphaeng_phet_25k`, 'เลขระวาง จังหวัดกำแพงเพชร (25k)', 10);
+        this.layers.transportKamphaengPhet25k = this.addWMSLayer(
+            wmsUrl,
+            `${this.workspace}:transport-kamphaeng_phet_25k`,
+            'เลขระวาง จังหวัดกำแพงเพชร (25k)',
+            10
+        );
     }
 
     private addWMSLayer(url: string, layers: string, name: string, zIndex: number = 0): Cesium.ImageryLayer | null {
@@ -427,15 +439,15 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
-    toggleParcel1() {
+    toggleTransportKamphaengPhet4k() {
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
-    toggleParcel2() {
+    toggleTransportThailand() {
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
-    toggleParcel3() {
+    toggleTransportKamphaengPhet25k() {
         this.updateLayerVisibilityByZoom(this.currentCameraHeight);
     }
 
@@ -507,9 +519,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.layerControls.railways = this.tierControls.tier3;
         this.layerControls.waterways = this.tierControls.tier3;
         this.layerControls.pois = this.tierControls.tier3;
-        this.layerControls.parcel1 = this.tierControls.tier3;
-        this.layerControls.parcel2 = this.tierControls.tier3;
-        this.layerControls.parcel3 = this.tierControls.tier3;
+        this.layerControls.transportKamphaengPhet4k = this.tierControls.tier3;
+        this.layerControls.transportThailand = this.tierControls.tier3;
+        this.layerControls.transportKamphaengPhet25k = this.tierControls.tier3;
 
         this.toggleProvinceBoundaries();
         this.toggleDistrictBoundaries();
@@ -518,9 +530,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.toggleRailways();
         this.toggleWaterways();
         this.togglePOIs();
-        this.toggleParcel1();
-        this.toggleParcel2();
-        this.toggleParcel3();
+        this.toggleTransportKamphaengPhet4k();
+        this.toggleTransportThailand();
+        this.toggleTransportKamphaengPhet25k();
     }
 
     // Toggle Tier 3 collapse/expand
@@ -674,9 +686,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             district: 'อำเภอ',
             subdistrict: 'ตำบล',
             poi: 'สถานที่',
-            parcel1: 'เลขระวาง จังหวัดกำแพงเพชร (4k)',
-            parcel2: 'เลขระวาง ประเทศไทย (สปภ.)',
-            parcel3: 'เลขระวาง จังหวัดกำแพงเพชร (25k)',
+            'transport-kamphaeng-phet-4k': 'เลขระวาง จังหวัดกำแพงเพชร (4k)',
+            'transport-thailand': 'เลขระวาง ประเทศไทย (สปภ.)',
+            'transport-kamphaeng-phet-25k': 'เลขระวาง จังหวัดกำแพงเพชร (25k)',
         };
         return labels[type] || type;
     }
@@ -687,9 +699,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             district: 'cil-map',
             subdistrict: 'cil-map',
             poi: 'cil-location-pin',
-            parcel1: 'cil-pin',
-            parcel2: 'cil-pin',
-            parcel3: 'cil-pin',
+            'transport-kamphaeng-phet-4k': 'cil-pin',
+            'transport-thailand': 'cil-pin',
+            'transport-kamphaeng-phet-25k': 'cil-pin',
         };
         return icons[type] || 'cil-cursor';
     }
@@ -763,63 +775,63 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         this.advancedSearchExpanded = !this.advancedSearchExpanded;
     }
 
-    async searchParcel1() {
-        if (!this.parcel1SearchQuery || this.parcel1SearchQuery.trim().length === 0) {
-            this.parcel1Results = [];
+    async searchTransportKamphaengPhet4k() {
+        if (!this.transportKamphaengPhet4kSearchQuery || this.transportKamphaengPhet4kSearchQuery.trim().length === 0) {
+            this.transportKamphaengPhet4kResults = [];
             return;
         }
 
         try {
-            this.parcel1Results = await this.searchLayer(
+            this.transportKamphaengPhet4kResults = await this.searchLayer(
                 `${this.workspace}:transport-kamphaeng_phet_4k`,
-                this.parcel1SearchQuery,
-                'parcel1',
+                this.transportKamphaengPhet4kSearchQuery,
+                'transport-kamphaeng-phet-4k',
                 'MAPSHEET',
                 'MAPSHEET'
             );
         } catch (error) {
-            console.error('Parcel 1 search error:', error);
-            this.parcel1Results = [];
+            console.error('Transport Kamphaeng Phet 4k search error:', error);
+            this.transportKamphaengPhet4kResults = [];
         }
     }
 
-    async searchParcel2() {
-        if (!this.parcel2SearchQuery || this.parcel2SearchQuery.trim().length === 0) {
-            this.parcel2Results = [];
+    async searchTransportThailand() {
+        if (!this.transportThailandSearchQuery || this.transportThailandSearchQuery.trim().length === 0) {
+            this.transportThailandResults = [];
             return;
         }
 
         try {
-            this.parcel2Results = await this.searchLayer(
+            this.transportThailandResults = await this.searchLayer(
                 `${this.workspace}:transport-thailand`,
-                this.parcel2SearchQuery,
-                'parcel2',
+                this.transportThailandSearchQuery,
+                'transport-thailand',
                 'SHEET_ID',
                 'SHEET_ID'
             );
         } catch (error) {
-            console.error('Parcel 2 search error:', error);
-            this.parcel2Results = [];
+            console.error('Transport Thailand search error:', error);
+            this.transportThailandResults = [];
         }
     }
 
-    async searchParcel3() {
-        if (!this.parcel3SearchQuery || this.parcel3SearchQuery.trim().length === 0) {
-            this.parcel3Results = [];
+    async searchTransportKamphaengPhet25k() {
+        if (!this.transportKamphaengPhet25kSearchQuery || this.transportKamphaengPhet25kSearchQuery.trim().length === 0) {
+            this.transportKamphaengPhet25kResults = [];
             return;
         }
 
         try {
-            this.parcel3Results = await this.searchLayer(
+            this.transportKamphaengPhet25kResults = await this.searchLayer(
                 `${this.workspace}:transport-kamphaeng_phet_25k`,
-                this.parcel3SearchQuery,
-                'parcel3',
+                this.transportKamphaengPhet25kSearchQuery,
+                'transport-kamphaeng-phet-25k',
                 'MAPSHEET',
                 'MAPSHEET'
             );
         } catch (error) {
-            console.error('Parcel 3 search error:', error);
-            this.parcel3Results = [];
+            console.error('Transport Kamphaeng Phet 25k search error:', error);
+            this.transportKamphaengPhet25kResults = [];
         }
     }
 
@@ -859,13 +871,13 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             },
         });
 
-        // Determine fly height based on parcel type
+        // Determine fly height based on transport type
         let flyHeight = 100000; // Default 100km
-        if (result.type === 'parcel2') {
+        if (result.type === 'transport-thailand') {
             flyHeight = 200000; // ประเทศไทย (สปภ.) - 200km
-        } else if (result.type === 'parcel1') {
+        } else if (result.type === 'transport-kamphaeng-phet-4k') {
             flyHeight = 100000; // กำแพงเพชร (4k) - 100km
-        } else if (result.type === 'parcel3') {
+        } else if (result.type === 'transport-kamphaeng-phet-25k') {
             flyHeight = 150000; // กำแพงเพชร (25k) - 150km
         }
 
@@ -947,11 +959,11 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
                     if (feature.imageryLayer) {
                         const layerName = feature.imageryLayer._imageryProvider?._layers || '';
                         if (layerName.includes('transport-kamphaeng_phet_4k')) {
-                            featureType = 'parcel1';
+                            featureType = 'transport-kamphaeng-phet-4k';
                         } else if (layerName.includes('transport-kamphaeng_phet_25k')) {
-                            featureType = 'parcel3';
+                            featureType = 'transport-kamphaeng-phet-25k';
                         } else if (layerName.includes('transport-thailand')) {
-                            featureType = 'parcel2';
+                            featureType = 'transport-thailand';
                         } else if (layerName.includes('thailand-changwat')) {
                             featureType = 'province';
                         } else if (layerName.includes('thailand-amphoe')) {
@@ -1017,9 +1029,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         if (!exists) {
             // Add layerName based on type
             const layerNames: { [key: string]: string } = {
-                parcel1: 'transport-kamphaeng_phet_4k',
-                parcel2: 'transport-thailand',
-                parcel3: 'transport-kamphaeng_phet_25k',
+                'transport-kamphaeng-phet-4k': 'transport-kamphaeng_phet_4k',
+                'transport-thailand': 'transport-thailand',
+                'transport-kamphaeng-phet-25k': 'transport-kamphaeng_phet_25k',
             };
             const layerName = layerNames[feature.type] || 'unknown';
             const featureId = feature.properties?.fid || feature.properties?.FID || feature.properties?.MAPSHEET || Math.floor(Math.random() * 10000);
@@ -1096,9 +1108,9 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
 
     getParcelTypeName(type: string): string {
         const typeNames: { [key: string]: string } = {
-            parcel1: 'จังหวัดกำแพงเพชร (4k)',
-            parcel2: 'ประเทศไทย (สปภ.)',
-            parcel3: 'จังหวัดกำแพงเพชร (25k)',
+            'transport-kamphaeng-phet-4k': 'จังหวัดกำแพงเพชร (4k)',
+            'transport-thailand': 'ประเทศไทย (สปภ.)',
+            'transport-kamphaeng-phet-25k': 'จังหวัดกำแพงเพชร (25k)',
         };
         return typeNames[type] || type;
     }
@@ -1365,7 +1377,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
                 }
 
                 const parcelId = parcel.properties?.MAPSHEET || parcel.properties?.SHEET_ID || `Parcel ${index + 1}`;
-                const layer = parcel.type === 'parcel1' ? 'กำแพงเพชร' : 'ประเทศไทย';
+                const layer = parcel.type === 'transport-kamphaeng-phet-4k' ? 'กำแพงเพชร' : 'ประเทศไทย';
                 const area = parcel.properties?.AREA || 'N/A';
 
                 pdf.text(`${index + 1}`, 15, yPosition);
