@@ -21,6 +21,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import * as Cesium from 'cesium';
+import Swal from 'sweetalert2';
 
 @Component({
     selector: 'app-map-phase-v2',
@@ -1068,13 +1069,29 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
     }
 
     confirmOrder() {
-        alert(
-            `สั่งซื้อสำเร็จ!\n\nจำนวน: ${this.selectedParcels.length} รายการ\nราคารวม: ฿${(
-                this.selectedParcels.length * 10000
-            ).toLocaleString()}\n\nกรุณาโอนเงินเข้าบัญชีที่ระบุ`
-        );
+        const totalItems = this.selectedParcels.length;
+        const totalPrice = (totalItems * 10000).toLocaleString();
+
+        // Close modal and clear cart first
         this.checkoutModalVisible = false;
         this.clearCart();
+
+        // Show SweetAlert2 after modal closes
+        // setTimeout(() => {
+        Swal.fire({
+            icon: 'success',
+            title: 'ชำระเงินสำเร็จ!',
+            html: `
+                    <div style="text-align: left; padding: 10px;">
+                        <p><strong>จำนวน:</strong> ${totalItems} รายการ</p>
+                        <p><strong>ราคารวม:</strong> ฿${totalPrice}</p>
+                    </div>
+                    <p style="color: #28a745; font-weight: bold;">ขอบคุณสำหรับการสั่งซื้อ</p>
+                `,
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#28a745',
+        });
+        // }, 300);
     }
 
     getParcelTypeName(type: string): string {

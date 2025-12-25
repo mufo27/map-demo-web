@@ -398,11 +398,19 @@
           </div>
         </div>
 
-        <div class="alert alert-info mt-4 small">
+        <div class="alert alert-info mt-4">
           <strong>💳 ข้อมูลการชำระเงิน</strong><br>
           กรุณาโอนเงินเข้าบัญชี: ธนาคารกสิกรไทย 123-4-56789-0<br>
           ชื่อบัญชี: IA Group Company<br>
           จำนวน: ฿{{ selectedParcels.length * 10000 | number }}
+        </div>
+
+        <!-- QR Code Payment Section -->
+        <div class="text-center mt-4 p-4 bg-light rounded">
+          <h6 class="fw-bold mb-3">📱 สแกน QR Code เพื่อชำระเงิน</h6>
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PromptPay:1234567890"
+            alt="QR Code Payment" class="img-fluid border rounded shadow-sm" style="max-width: 200px;">
+          <p class="text-muted small mt-3 mb-0">สแกน QR Code ด้านบนเพื่อชำระเงินผ่าน PromptPay</p>
         </div>
       </div>
     </c-modal-body>
