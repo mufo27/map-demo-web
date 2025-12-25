@@ -330,8 +330,16 @@
       </table>
     </c-modal-body>
     <c-modal-footer>
+      <button cButton color="danger" size="sm" (click)="exportFeatureAsPDF()"
+        *ngIf="selectedFeature?.type === 'parcel1' || selectedFeature?.type === 'parcel2' || selectedFeature?.type === 'parcel3'">
+        Export PDF
+      </button>
+      <button cButton color="info" size="sm" (click)="exportMapAsImage()"
+        *ngIf="selectedFeature?.type === 'parcel1' || selectedFeature?.type === 'parcel2' || selectedFeature?.type === 'parcel3'">
+        Export Map
+      </button>
       <button cButton color="success" (click)="addToCart(selectedFeature); closeModal()"
-        *ngIf="selectedFeature?.type === 'parcel1' || selectedFeature?.type === 'parcel2'">
+        *ngIf="selectedFeature?.type === 'parcel1' || selectedFeature?.type === 'parcel2' || selectedFeature?.type === 'parcel3'">
         🛒 เพิ่มลงตะกร้า
       </button>
       <button cButton color="secondary" (click)="closeModal()">ปิด</button>

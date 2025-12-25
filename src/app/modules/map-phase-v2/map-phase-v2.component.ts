@@ -946,6 +946,8 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
                         const layerName = feature.imageryLayer._imageryProvider?._layers || '';
                         if (layerName.includes('transport-kamphaeng_phet_4k')) {
                             featureType = 'parcel1';
+                        } else if (layerName.includes('transport-kamphaeng_phet_25k')) {
+                            featureType = 'parcel3';
                         } else if (layerName.includes('transport-thailand')) {
                             featureType = 'parcel2';
                         } else if (layerName.includes('thailand-changwat')) {
@@ -1175,7 +1177,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
             });
 
             // Add watermark
-            const watermarkedCanvas = this.addWatermarkToCanvas(canvas, 'Transport Map Demo');
+            const watermarkedCanvas = this.addWatermarkToCanvas(canvas, 'IA Group company');
 
             // Download image
             watermarkedCanvas.toBlob((blob) => {
@@ -1193,6 +1195,61 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         } catch (error) {
             console.error('❌ Error exporting map:', error);
             alert('เกิดข้อผิดพลาดในการ export แผนที่');
+        }
+    }
+
+    /**
+     * Export current feature details as PDF with watermark
+     */
+    async exportFeatureAsPDF() {
+        if (!this.selectedFeature) {
+            alert('ไม่มีข้อมูลที่จะ export');
+            return;
+        }
+
+        try {
+            const pdf = new jsPDF();
+            const pageWidth = pdf.internal.pageSize.getWidth();
+
+            // Add diagonal watermark
+            this.addWatermarkToPDF(pdf, 'IA Group company');
+
+            // Header
+            pdf.setFontSize(18);
+            pdf.text('Demo Map - IA Group company', pageWidth / 2, 20, { align: 'center' });
+
+            pdf.setFontSize(10);
+            const dateStr = new Date().toLocaleDateString('th-TH');
+            pdf.text(`Date: ${dateStr}`, pageWidth / 2, 28, { align: 'center' });
+
+            // Feature title
+            let yPosition = 45;
+            pdf.setFontSize(14);
+            pdf.setFont('helvetica', 'bold');
+            const title =
+                this.selectedFeature.name || this.selectedFeature.properties?.MAPSHEET || this.selectedFeature.properties?.SHEET_ID || 'รายละเอียด';
+            pdf.text(String(title), pageWidth / 2, yPosition, { align: 'center' });
+
+            // Details table
+            yPosition += 15;
+            pdf.setFontSize(11);
+            pdf.setFont('helvetica', 'normal');
+
+            const displayItems = this.getDisplayItems();
+            displayItems.forEach((item) => {
+                pdf.setFont('helvetica', 'bold');
+                pdf.text(`${item.label}:`, 20, yPosition);
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(String(item.value), 80, yPosition);
+                yPosition += 8;
+            });
+
+            // Save PDF
+            pdf.save(`feature-details-${new Date().getTime()}.pdf`);
+            console.log('✅ Feature PDF exported successfully');
+        } catch (error) {
+            console.error('❌ Error exporting feature PDF:', error);
+            alert('เกิดข้อผิดพลาดในการ export PDF');
         }
     }
 
@@ -1291,7 +1348,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         // Add watermark
         ctx.save();
         ctx.globalAlpha = 0.3;
-        ctx.font = 'bold 48px Arial';
+        ctx.font = 'bold 28px Arial';
         ctx.fillStyle = '#FFFFFF';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -1331,7 +1388,7 @@ export class MapPhaseV2Component implements AfterViewInit, OnDestroy {
         // @ts-ignore - jsPDF GState typing issue
         pdf.setGState(new pdf.GState({ opacity: 0.15 })); // Increased opacity from 0.1 to 0.15
         pdf.setTextColor(150, 150, 150);
-        pdf.setFontSize(40); // Reduced from 60 to allow more repetitions
+        pdf.setFontSize(24); // Smaller watermark text
 
         // Create repeating diagonal watermark pattern
         const spacing = 80; // Spacing between watermarks
